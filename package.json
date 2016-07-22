@@ -1,12 +1,31 @@
 {
-  "name": "openshift-cartridge-nodejs-template",
-  "version": "1.0.1",
-  "description": "Custom Node.js cartridge for OpenShift - sample application",
+  "name": "r4all",
+  "version": "1.0.0",
   "private": true,
-  "main": "start.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node --use_strict start.js"
+    "start": "node --optimize_for_size --max_old_space_size=460 --gc_interval=100 server.js"
   },
-  "author": "Ionut-Cristian Florescu <ionut.florescu@gmail.com>",
-  "license": "ISC"
+  "dependencies": {
+    "bluebird": "^3.3.5",
+    "body-parser": "^1.15.0",
+    "cheerio": "^0.20.0",
+    "cookie-parser": "^1.4.1",
+    "debug": "^2.2.0",
+    "ejs": "^2.4.1",
+    "express": "^4.13.4",
+    "express-ejs-layouts": "^2.1.0",
+    "express-session": "^1.13.0",
+    "latenize": "^0.2.0",
+    "moment": "^2.13.0",
+    "moment-timezone": "^0.5.4",
+    "mongodb": "^2.1.18",
+    "morgan": "^1.7.0",
+    "request": "^2.72.0",
+    "serve-favicon": "^2.3.0",
+    "underscore": "^1.8.3",
+    "urijs": "^1.18.0",
+    "winston": "^2.2.0",
+    "winston-daily-rotate-file": "^1.0.1"
+  }
 }

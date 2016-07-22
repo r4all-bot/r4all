@@ -1,0 +1,114 @@
+<style>
+#notifications {
+    position: fixed;
+    right: 40px;
+    top: 60px;
+    width: 600px;
+    z-index: 3;
+}
+
+.table tbody>tr>td.vert-align,
+.table tbody>tr>th.vert-align {
+    vertical-align: middle;
+}
+</style>
+
+<% if(toVerify.length) { %>
+	<div id="notifications">
+	</div>
+	<div class="table-responsive">
+	    <table class="table table-bordered">
+	        <thead>
+	            <tr>
+	                <th class="text-center">Release Title</th>
+	                <th class="text-center">Folder</th>
+	                <th class="text-center">IMDb</th>
+	                <th class="text-center">Addic7ed</th>
+	                <th class="text-center">Verify</th>
+	            </tr>
+	        </thead>
+	        <tbody>
+	        	<% _.each(toVerify, function(show) { %>
+		            <tr id="<%= show._id %>" class="unverifiedShow">
+		                <th class="vert-align text-center" scope="row">
+		                	<a href="/releases/show/<%= show._id %>/" target="_blank"><%= show._id %></a>
+		                </th>
+		                <td class="vert-align text-center">
+		                	<input type="text" value="<%= show.folder %>" class="form-control sFolder" />
+						</td>
+		                <td class="vert-align text-center">
+							<div class="input-group">
+								<input type="text" value="<%= show.imdbId %>" class="form-control sIMDbId">
+								<a class="input-group-addon" href="<%= show.imdbId ? providers.imdb.TITLE_URL.replace(/\{imdbId\}/, show.imdbId) : providers.imdb.URL %>" target="_blank"><span class="glyphicon glyphicon-new-window"></span></a>
+							</div>
+						</td>
+		                <td class="vert-align text-center">
+							<div class="input-group">
+								<input type="text" value="<%= show.addic7edId %>" class="form-control sAddic7edId">
+								<a class="input-group-addon" href="<%= show.addic7edId ? providers.addic7ed.SHOW_URL.replace(/\{addic7edId\}/, show.addic7edId) : providers.addic7ed.SHOW_LIST_URL %>" target="_blank"><span class="glyphicon glyphicon-new-window"></span></a>
+							</div>
+						</td>
+		                <td class="vert-align text-center">
+							<button type="button" class="btn btn-success btn-sm sUpdate">
+								<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+							</button>
+		                </td>
+		            </tr>
+	        	<% }); %>
+	        </tbody>
+	    </table>
+	</div>
+<% } else { %>
+	<div role="alert" class="alert alert-success"><strong>Well done!</strong> All Shows are verified.</div>
+<% } %>
+
+<script>
+$(function() {
+	$('.sIMDbId').change(function() {
+		var imdbId = $(this).val();
+		$(this).next('a').attr('href', imdbId ? '<%= providers.imdb.TITLE_URL %>'.replace(/\{imdbId\}/, imdbId) : '<%= providers.imdb.URL %>');
+	});
+
+	$('.sAddic7edId').change(function() {
+		var addic7edId = $(this).val();
+		$(this).next('a').attr('href', addic7edId ? '<%= providers.addic7ed.SHOW_URL %>'.replace(/\{addic7edId\}/, addic7edId) : '<%= providers.addic7ed.SHOW_LIST_URL %>');
+	});
+
+	$('.sUpdate').on('click', function() {
+		var showSel = $(this).closest('.unverifiedShow');
+
+		var show = {
+			_id: $(showSel).attr('id'),
+			folder: $(showSel).find('.sFolder').val(),
+			imdbId: $(showSel).find('.sIMDbId').val(),
+			addic7edId: $(showSel).find('.sAddic7edId').val(),
+			isVerified: 1
+		};
+		
+		if(show._id && show.folder && show.imdbId && show.imdbId.match(/^tt\d+$/) && (!show.addic7edId || show.addic7edId.match(/^\d+$/))) {
+			$.ajax({
+				url: '/show',
+				type: 'PUT',
+				data: show,
+				success: function() {
+					$(showSel).find('input, button').prop('disabled', true).parent().removeClass('has-error');
+					$('<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>Well Done!</strong> ' + show._id + ' show updated!</div>').prependTo('#notifications').fadeIn('fast').delay(10000).fadeOut('fast', function () {
+				        $(this).remove();
+				    });
+				},
+				error: function(err) {
+					$('<div class="alert alert-danger alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>' + err.responseText + '</div>').prependTo('#notifications').fadeIn('fast');
+				}
+			});
+		} else {
+			!show.folder && $(showSel).find('.sFolder').parent().addClass('has-error');
+			(!show.imdbId || !show.imdbId.match(/^tt\d+$/)) && $(showSel).find('.sIMDbId').parent().addClass('has-error');
+			(show.addic7edId && !show.addic7edId.match(/^\d+$/)) && $(showSel).find('.sAddic7edId').parent().addClass('has-error');
+
+			$('<div class="alert alert-danger alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><strong>Oh snap!</strong> Fill it properly!</div>').prependTo('#notifications').fadeIn('fast').delay(10000).fadeOut('fast', function () {
+		        $(this).remove();
+		    });
+		}
+	});
+});
+</script> 
