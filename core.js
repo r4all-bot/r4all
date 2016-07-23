@@ -16,6 +16,7 @@ var providers = {
     nfomation: require('./providers/nfomation.js'),
     imdb: require('./providers/imdb.js'),
     kickasstorrents: require('./providers/kickasstorrents.js'),
+    rarbg: require('./providers/rarbg.js'),
     thepiratebay: require('./providers/thepiratebay.js'),
     addic7ed: require('./providers/addic7ed.js'),
     legendasdivx: require('./providers/legendasdivx.js')
@@ -371,15 +372,13 @@ var fetchMovieInfo = function (release) {
                     return;
                 }
 
-                var altSearch = release.parsed.releaseTitle + (release.parsed.year ? '.' + release.parsed.year : '') + '-' + release.parsed.group; // releaseTitle.year-group
-
-                return providers.kickasstorrents.fetchReleaseInfo(release.name, release.category, altSearch)
-                    .then(function (info) {
-                        if (info && info.imdbId) {
-                            release.imdbId = info.imdbId;
+                return providers.rarbg.fetchReleaseInfo(release.name, release.category)
+                    .then(function (torrent) {
+                        if (torrent && torrent.imdbId) {
+                            release.imdbId = torrent.imdbId;
                             return _.bind(fetchMovieInfo, _this)(release);
                         } else {
-                            if (!providers.kickasstorrents.isOn) {
+                            if (!providers.rarbg.isOn) {
                                 return;
                             }
 
@@ -395,6 +394,31 @@ var fetchMovieInfo = function (release) {
                                 });
                         }
                     });
+
+                // var altSearch = release.parsed.releaseTitle + (release.parsed.year ? '.' + release.parsed.year : '') + '-' + release.parsed.group; // releaseTitle.year-group
+
+                // return providers.kickasstorrents.fetchReleaseInfo(release.name, release.category, altSearch)
+                //     .then(function (info) {
+                //         if (info && info.imdbId) {
+                //             release.imdbId = info.imdbId;
+                //             return _.bind(fetchMovieInfo, _this)(release);
+                //         } else {
+                //             if (!providers.kickasstorrents.isOn) {
+                //                 return;
+                //             }
+
+                //             var r = {
+                //                 _id: release._id,
+                //                 isVerified: 0
+                //             };
+
+                //             return db.upsertRelease(r)
+                //                 .then(function () {
+                //                     log.warn(release.name + ' (missing imdb id)');
+                //                     return;
+                //                 });
+                //         }
+                //     });
             }
         });
 };
@@ -468,33 +492,50 @@ var fetchShowInfo = function (release) {
                     return;
                 }
             } else {
-                var altSearch = release.showId + '-' + release.parsed.group; // releaseTitle-group
-
-                return providers.kickasstorrents.fetchReleaseInfo(release.name, release.category, altSearch)
-                    .then(function (info) {
-                        if (!info) {
+                return providers.rarbg.fetchReleaseInfo(release.name, release.category)
+                    .then(function (torrent) {
+                        if (!torrent) {
                             return;
                         }
 
-                        return providers.addic7ed.fetchShowId(info.title)
-                            .then(function (addic7edId) {
-                                if (!addic7edId && !providers.addic7ed.isOn) {
-                                    return;
-                                }
+                        var show = {
+                            _id: release.showId,
+                            imdbId: torrent.imdbId,
+                        };
 
-                                var show = {
-                                    _id: release.showId,
-                                    folder: info.title.replace(/\\|\/|:|\*|\?|"|<|>|\|/g, ''),
-                                    imdbId: info.imdbId,
-                                    addic7edId: addic7edId
-                                };
-
-                                return db.upsertShow(show)
-                                    .then(function () {
-                                        return _this.addShow(show);
-                                    });
+                        return db.upsertShow(show)
+                            .then(function () {
+                                return _this.addShow(show);
                             });
                     });
+
+                // var altSearch = release.showId + '-' + release.parsed.group; // releaseTitle-group
+
+                // return providers.kickasstorrents.fetchReleaseInfo(release.name, release.category, altSearch)
+                //     .then(function (info) {
+                //         if (!info) {
+                //             return;
+                //         }
+
+                //         return providers.addic7ed.fetchShowId(info.title)
+                //             .then(function (addic7edId) {
+                //                 if (!addic7edId && !providers.addic7ed.isOn) {
+                //                     return;
+                //                 }
+
+                //                 var show = {
+                //                     _id: release.showId,
+                //                     folder: info.title.replace(/\\|\/|:|\*|\?|"|<|>|\|/g, ''),
+                //                     imdbId: info.imdbId,
+                //                     addic7edId: addic7edId
+                //                 };
+
+                //                 return db.upsertShow(show)
+                //                     .then(function () {
+                //                         return _this.addShow(show);
+                //                     });
+                //             });
+                //     });
             }
         });
 };
@@ -504,6 +545,9 @@ var fetchShowInfo = function (release) {
 // **************************************************
 var fetchTorrent = function (release) {
     return providers.kickasstorrents.fetch(release.name, release.category)
+        .then(function (torrent) {
+            return torrent || providers.rarbg.fetch(release.name, release.category);
+        })
         .then(function (torrent) {
             return torrent || providers.thepiratebay.fetch(release.name, release.category);
         });

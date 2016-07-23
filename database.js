@@ -14,7 +14,7 @@ module.exports = {
     // initialize
     // **************************************************
     initialize: function () {
-        return MongoDB.MongoClient.connectAsync((process.env.MONGODB_URL || 'mongodb://127.0.0.1:50191/') + 'r4all')
+        return MongoDB.MongoClient.connectAsync((process.env.MONGODB_URL || 'mongodb://127.0.0.1:41406/') + 'r4all')
             .then(function (database) {
                 db = database;
                 return;
