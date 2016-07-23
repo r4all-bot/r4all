@@ -75,9 +75,10 @@ var query = function (params) {
                         token = null;
                         return _.bind(query, _this)(params);
                     } else if (res['error_code'] == 5) {
-                        setTimeout(function () {
-                            return _.bind(query, _this)(params);
-                        }, 2000);
+                        return Promise.resolve().delay(2000)
+                            .then(function () {
+                                return _.bind(query, _this)(params);
+                            });
                     } else {
                         return res['torrent_results'];
                     }
@@ -88,7 +89,7 @@ var query = function (params) {
 var fetchTorrent = function (torrents) {
     var torrent = {};
 
-    if (torrents[0]) {
+    if (torrents && torrents[0]) {
         torrent = {
             torrentProvider: 'rarbg',
             torrentId: common.rem(/&p=(\w+?)(?:&|$)/, torrents[0].info_page),
