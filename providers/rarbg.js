@@ -15,7 +15,7 @@ var RARBG = function () {
     this.TORRENT_URL = this.API_URL + '/redirect_to_info.php?token={token}&p={torrentId}';
 
     // status
-    this.isOn = true;
+    this.isOn = false; // ##
 };
 RARBG.prototype.constructor = RARBG;
 
@@ -108,6 +108,9 @@ var fetchTorrent = function (torrents) {
 };
 
 RARBG.prototype.fetch = function (releaseName, category) {
+    // ##
+    return require('bluebird').resolve(null);
+
     var params = {
         mode: 'search',
         search_string: releaseName,
