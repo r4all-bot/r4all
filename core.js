@@ -372,7 +372,7 @@ var fetchMovieInfo = function (release) {
                     return;
                 }
 
-                return providers.rarbg.fetchReleaseInfo(release.name, release.category)
+                return providers.rarbg.fetch(release.name, release.category)
                     .then(function (torrent) {
                         if (torrent && torrent.imdbId) {
                             release.imdbId = torrent.imdbId;
@@ -492,7 +492,7 @@ var fetchShowInfo = function (release) {
                     return;
                 }
             } else {
-                return providers.rarbg.fetchReleaseInfo(release.name, release.category)
+                return providers.rarbg.fetch(release.name, release.category)
                     .then(function (torrent) {
                         if (!torrent) {
                             return;
