@@ -15,7 +15,7 @@ var RARBG = function () {
     this.TORRENT_URL = this.API_URL + '/redirect_to_info.php?token={token}&p={torrentId}';
 
     // status
-    this.isOn = false; // ##
+    this.isOn = true;
 };
 RARBG.prototype.constructor = RARBG;
 
@@ -39,6 +39,7 @@ var get = function (params) {
         params = params || {};
 
         var req = {
+            proxy: 'http://47.88.104.219:80',
             uri: _this.API_URL + '/pubapi_v2.php',
             method: 'GET',
             qs: params,
@@ -108,9 +109,6 @@ var fetchTorrent = function (torrents) {
 };
 
 RARBG.prototype.fetch = function (releaseName, category) {
-    // ##
-    return require('bluebird').resolve(null);
-
     var params = {
         mode: 'search',
         search_string: releaseName,

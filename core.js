@@ -306,6 +306,7 @@ var jobHandler = function (release) {
             };
 
             if (torrent) {
+                delete torrent.imdbId;
                 _.extend(r, torrent);
             }
 
