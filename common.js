@@ -182,7 +182,12 @@ var common = module.exports = {
             'EXTENDED.REPACK',
             'READNFO.LIMITED',
             'UNCUT',
-            'UNCUT.RERiP'
+            'UNCUT.RERiP',
+            'LIMITED.EXTENDED',
+            'EXTENDED.LIMITED',
+            'Limited.REPACK',
+            'ALTERNATE.UNRATED',
+            'REPACK.LIMITED'
         ],
 
         typeMatch: {
@@ -226,7 +231,7 @@ var common = module.exports = {
                     parsed = {};
 
                     if (category.charAt(0) == 'm') {
-                        parsed.releaseTitle = result[0].toUpperCase();
+                        parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
                         parsed.year = result[1] && parseInt(result[1]); // year
                         parsed.tag = result[2];
                         parsed.group = result[3];
@@ -235,7 +240,7 @@ var common = module.exports = {
                             return parseInt(ep, 10);
                         });
 
-                        parsed.releaseTitle = result[0].toUpperCase();
+                        parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
                         parsed.season = parseInt(result[1], 10); // season
                         parsed.episodes = [];
                         parsed.tag = result[3];
