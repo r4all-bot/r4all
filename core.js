@@ -442,13 +442,13 @@ var validateMovie = function (release, imdbId) {
             var releaseTitle = release.parsed.releaseTitle.replace(/-/g, '.'); // fix: replace allowed character '-' with dot - some releases replace with dot
             var movieTitleEncoded = common.scene.titleEncode(imdbInfo.title).toUpperCase(); // encode movie title from imdb movie title
 
-            if (releaseTitle.indexOf(movieTitleEncoded) != -1 || movieTitleEncoded.indexOf(releaseTitle) != -1) { // compare movie title
+            if (movieTitleEncoded != '' && (releaseTitle.indexOf(movieTitleEncoded) != -1 || movieTitleEncoded.indexOf(releaseTitle) != -1)) { // compare movie title
                 validated = true;
             } else { // check aka movie titles
                 imdbInfo.akas.some(function (aka) {
                     movieTitleEncoded = common.scene.titleEncode(aka).toUpperCase();
 
-                    if (releaseTitle.indexOf(movieTitleEncoded) != -1 || movieTitleEncoded.indexOf(releaseTitle) != -1) { // compare movie title
+                    if (movieTitleEncoded != '' && (releaseTitle.indexOf(movieTitleEncoded) != -1 || movieTitleEncoded.indexOf(releaseTitle) != -1)) { // compare movie title
                         imdbInfo.aka = aka;
                         validated = true;
                         return true;
