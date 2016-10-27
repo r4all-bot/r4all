@@ -1,2 +1,2 @@
 2016-10-27: Version 1.1.1
-	* new proxy for rarbg: http://93.104.211.51:80 - german > http://proxyservers.pro/proxy/list/order/duration/order_dir/desc/page/1
+	* new proxy for rarbg: http://128.199.135.23:3128 - Singapore > https://free-proxy-list.net/
