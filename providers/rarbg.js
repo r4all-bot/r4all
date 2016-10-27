@@ -39,7 +39,7 @@ var get = function (params) {
         params = params || {};
 
         var req = {
-            proxy: 'http://47.88.104.219:80',
+            proxy: 'http://93.104.211.51:80',
             uri: _this.API_URL + '/pubapi_v2.php',
             method: 'GET',
             qs: params,
