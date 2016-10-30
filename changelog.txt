@@ -1,2 +1,6 @@
+2016-10-30: Version 1.1.2
+	* trakttv images support removed
+	* themoviedb added
+	* hide KAT references
 2016-10-27: Version 1.1.1
 	* new proxy for rarbg: http://128.199.135.23:3128 - Singapore > https://free-proxy-list.net/

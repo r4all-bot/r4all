@@ -38,9 +38,7 @@ var fetchMedia = function (obj) {
     var media = {};
 
     // validation
-    if ('images' in obj && 'trailer' in obj) {
-        media.cover = obj.images.poster.full;
-        media.backdrop = obj.images.fanart.full;
+    if ('trailer' in obj) {
         media.trailer = obj.trailer;
         media.state = obj.status;
     }
@@ -89,49 +87,11 @@ var get = function (endpoint, getVariables) {
     });
 };
 
-TraktTv.prototype.resizeImage = function (imageUrl, size) {
-    if (!imageUrl) {
-        return imageUrl;
-    }
-
-    var uri = URI(imageUrl),
-        ext = uri.suffix(),
-        file = uri.filename().split('.' + ext)[0];
-
-    // Don't resize images that don't come from trakt
-    //  eg. YTS Movie Covers
-    if (imageUrl.indexOf('placeholders/original/fanart') !== -1) {
-        return 'images/bg-header.jpg'.toString();
-    } else if (imageUrl.indexOf('placeholders/original/poster') !== -1) {
-        return 'images/posterholder.png'.toString();
-    } else if (uri.domain() !== 'trakt.us') {
-        return imageUrl;
-    }
-
-    var existingIndex = 0;
-    if ((existingIndex = file.search('-\\d\\d\\d$')) !== -1) {
-        file = file.slice(0, existingIndex);
-    }
-
-    // reset
-    uri.pathname(uri.pathname().toString().replace(/thumb|medium/, 'original'));
-
-    if (size === 'thumb') {
-        uri.pathname(uri.pathname().toString().replace(/original/, 'thumb'));
-    } else if (size === 'medium') {
-        uri.pathname(uri.pathname().toString().replace(/original/, 'medium'));
-    } else {
-        //keep original
-    }
-
-    return uri.filename(file + '.' + ext).toString();
-};
-
 TraktTv.prototype.fetch = function (imdbId, type) {
     var _this = this;
 
     return get(type + 's/' + imdbId, {
-            extended: 'full,images'
+            extended: 'full'
         })
         .then(fetchMedia)
         .then(function (media) {

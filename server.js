@@ -1,6 +1,6 @@
 'use strict';
 
-//process.env.DEBUG = 'server, core, DDLValley, ReleaseBB, TwoDDL, NFOmation, IMDb, TraktTv, KickassTorrents, RARBG, ThePirateBay, Addic7ed, LegendasDivx';
+// process.env.DEBUG = 'server, core, DDLValley, ReleaseBB, TwoDDL, NFOmation, IMDb, TraktTv, TMDb, KickassTorrents, RARBG, ThePirateBay, Addic7ed, LegendasDivx';
 
 var path = require('path');
 var http = require('http');
@@ -28,6 +28,7 @@ app.locals.providers = {
     nfomation: require('./providers/nfomation.js'),
     imdb: require('./providers/imdb.js'),
     trakttv: require('./providers/trakttv.js'),
+    themoviedb: require('./providers/themoviedb.js'),
     kickasstorrents: require('./providers/kickasstorrents.js'),
     rarbg: require('./providers/rarbg.js'),
     thepiratebay: require('./providers/thepiratebay.js'),

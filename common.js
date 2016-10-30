@@ -113,8 +113,8 @@ var common = module.exports = {
         switch (uri.domain()) {
             case 'media-imdb.com':
                 return providers.imdb.resizeImage(imageUrl, size);
-            case 'trakt.us':
-                return providers.trakttv.resizeImage(imageUrl, size);
+            case 'image.tmdb.org':
+                return providers.themoviedb.resizeImage(imageUrl, size);
             default:
                 return imageUrl;
         }

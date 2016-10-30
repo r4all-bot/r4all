@@ -10,6 +10,7 @@ var log = require('../logger.js');
 var common = require('../common.js');
 
 var trakttv = require('./trakttv.js');
+var mdb = require('./themoviedb.js');;
 
 var IMDb = function () {
     this.URL = 'http://akas.imdb.com';
@@ -78,13 +79,19 @@ var fetchInfo = function (html) {
     return trakttv.fetch(info._id, info.type)
         .then(function (newInfo) {
             if (newInfo) {
-                info.cover = newInfo.cover || info.cover;
-                info.backdrop = newInfo.backdrop;
                 info.trailer = newInfo.trailer || info.trailer;
 
                 if (newInfo.state) {
                     info.state = newInfo.state;
                 }
+            }
+
+            return mdb.fetch(info._id, info.type);
+        })
+        .then(function (newInfo) {
+            if (newInfo) {
+                info.cover = newInfo.cover || info.cover;
+                info.backdrop = newInfo.backdrop;
             }
 
             if (info.type == 'movie') {
