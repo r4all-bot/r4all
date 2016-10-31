@@ -1,6 +1,6 @@
 	* next update: remove KAT
 2016-10-31: Version 1.1.3
-	* new proxy for rarbg: http://199.193.255.160:3128 USA > http://proxylist.hidemyass.com/search
+	* new proxy for rarbg: http://97.77.104.22:80 USA > https://free-proxy-list.net/
 	* memoryUsage refresh changed from 1min to 15min
 2016-10-30: Version 1.1.2
 	* trakttv images support removed
