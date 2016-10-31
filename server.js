@@ -75,7 +75,7 @@ function memoryUsage() {
     };
 
     return app.locals.db.insertMemoryUsage(data)
-        .then(setTimeout(memoryUsage, 60 * 1000));
+        .then(setTimeout(memoryUsage, 15 * 60 * 1000));
 };
 
 (function initApp() {
