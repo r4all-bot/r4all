@@ -53,7 +53,7 @@ app.use(morgan('combined', {
     }
 }));
 app.use(expressLayouts);
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({
     extended: false
 }));
