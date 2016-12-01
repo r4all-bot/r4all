@@ -595,7 +595,8 @@ Core.prototype.refresh = function () {
     var fetchAllJobs = moment().diff(this.lastFetchAllJobs, 'days') > 0;
     var _this = this;
 
-    return _.bind(fetchReleases, this)('ddlvalley')
+    return db.setSettings()
+        .then(_.partial(_.bind(fetchReleases, this), 'ddlvalley'))
         .then(_.bind(fetchShowList, _this))
         .then(_.partial(db.getJobs, fetchAllJobs))
         .each(function (release) {

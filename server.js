@@ -53,7 +53,7 @@ app.use(morgan('combined', {
     }
 }));
 app.use(expressLayouts);
-app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({
     extended: false
 }));
@@ -80,6 +80,7 @@ function memoryUsage() {
 
 (function initApp() {
     app.locals.db.initialize()
+        .then(app.locals.db.setSettings)
         .then(memoryUsage)
         .then(function () {
             return http.createServer(app).listen(app.get('port'), app.get('ip'), function () {

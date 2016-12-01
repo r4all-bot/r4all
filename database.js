@@ -21,6 +21,33 @@ module.exports = {
             });
     },
 
+    setSettings: function () {
+        return db.collection('settings').find().toArrayAsync()
+            .then(function (settings) {
+                if (_.isEmpty(settings)) {
+                    // default settings
+                    settings = [{
+                        _id: 'proxy',
+                        value: 'http://142.4.200.192:80'
+                    }];
+
+                    return db.collection('settings').insertAsync(settings)
+                        .then(function (result) {
+                            return settings;
+                        });
+                }
+
+                return settings;
+            })
+            .then(function (settings) {
+                _.map(settings, function (setting) {
+                    global[setting._id] = setting.value;
+                });
+
+                return;
+            });
+    },
+
     // **************************************************
     // get
     // **************************************************

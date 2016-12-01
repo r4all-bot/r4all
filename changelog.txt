@@ -1,4 +1,7 @@
 	* next update: remove KAT
+2016-12-01: Version 1.1.5
+	* added settings collection
+	* peoxy added to settings
 2016-11-20: Version 1.1.4
 	* app.use(bodyParser.json({limit: '50mb'}));
 2016-10-31: Version 1.1.3
