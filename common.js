@@ -187,7 +187,8 @@ var common = module.exports = {
             'EXTENDED.LIMITED',
             'Limited.REPACK',
             'ALTERNATE.UNRATED',
-            'REPACK.LIMITED'
+            'REPACK.LIMITED',
+            'REAL.REPACK'
         ],
 
         typeMatch: {

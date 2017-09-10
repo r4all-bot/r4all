@@ -85,6 +85,13 @@ function memoryUsage() {
         .then(function () {
             return http.createServer(app).listen(app.get('port'), app.get('ip'), function () {
                 debug('Express server listening on port ' + app.get('port'));
+
+                // global.proxy = 'http://138.201.63.123:31288';
+                // app.locals.providers.rarbg.fetch('The.Blacklist.S04E15.720p.HDTV.x264-SVA', 's720p')
+                //     .then(function(result){
+                //         console.log(result);
+                //     });
+
                 return app.locals.core.refresh();
             });
         })
