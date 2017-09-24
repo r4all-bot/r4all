@@ -19,11 +19,7 @@ module.exports = {
         var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
         var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
         var db_name = (process.env.MONGODB_DATABASE || 'r4all');
-console.log(process.env.MONGODB_USER);
-console.log(process.env.MONGODB_PASSWORD);
-console.log(process.env.MONGODB_SERVICE_HOST);
-console.log(process.env.MONGODB_SERVICE_PORT);
-console.log(process.env.MONGODB_DATABASE);
+        
         return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function (database) {
                 db = database;

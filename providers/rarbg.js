@@ -39,7 +39,7 @@ var get = function (params) {
         params = params || {};
 
         var req = {
-            proxy: global.proxy,
+            //proxy: global.proxy,
             uri: _this.API_URL + '/pubapi_v2.php',
             method: 'GET',
             qs: params,
@@ -50,15 +50,19 @@ var get = function (params) {
 
         debug(req.uri);
 
-        request(req, function (err, res, data) {
-            if (err || res.statusCode != 200) {
-                return reject(err || 'Status Code is != 200');
-            } else if (!data) {
-                return reject('No data returned');
-            } else {
-                return resolve(data);
-            }
-        });
+        try {
+            request(req, function (err, res, data) {
+                if (err || res.statusCode != 200) {
+                    return reject(err || 'Status Code is != 200');
+                } else if (!data) {
+                    return reject('No data returned');
+                } else {
+                    return resolve(data);
+                }
+            });
+        } catch (e) {
+            return reject(e);
+        }
     });
 };
 
