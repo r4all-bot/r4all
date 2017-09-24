@@ -14,13 +14,16 @@ module.exports = {
     // initialize
     // **************************************************
     initialize: function () {
-        var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
-            mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'] || '127.0.0.1',
-            mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'] || '27017',
-            mongoDatabase = process.env[mongoServiceName + '_DATABASE'] || 'r4all',
-            mongoPassword = process.env[mongoServiceName + '_PASSWORD'] || 'CUqkOP8cLBkLPXmp',
-            mongoUser = process.env[mongoServiceName + '_USER'] || 'userR87';
-
+        var db_user = (process.env.MONGODB_USER || 'userR87');
+        var db_password = (process.env.MONGODB_PASSWORD || 'CUqkOP8cLBkLPXmp');
+        var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
+        var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
+        var db_name = (process.env.MONGODB_DATABASE || 'r4all');
+console.log(process.env.MONGODB_USER);
+console.log(process.env.MONGODB_PASSWORD);
+console.log(process.env.MONGODB_SERVICE_HOST);
+console.log(process.env.MONGODB_SERVICE_PORT);
+console.log(process.env.MONGODB_DATABASE);
         return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function (database) {
                 db = database;
