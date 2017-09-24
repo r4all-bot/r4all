@@ -1,6 +1,6 @@
 'use strict';
 
-// process.env.DEBUG = 'server, core, DDLValley, ReleaseBB, TwoDDL, NFOmation, IMDb, TraktTv, TMDb, KickassTorrents, RARBG, ThePirateBay, Addic7ed, LegendasDivx';
+process.env.DEBUG = 'server, core, DDLValley, ReleaseBB, TwoDDL, NFOmation, IMDb, TraktTv, TMDb, KickassTorrents, RARBG, ThePirateBay, Addic7ed, LegendasDivx';
 
 var path = require('path');
 var http = require('http');
