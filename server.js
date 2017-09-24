@@ -39,8 +39,8 @@ app.locals._ = require('underscore');
 app.locals.moment = require('moment-timezone');
 
 // set server info
-app.set('port', process.env.NODE_PORT || 8085);
-app.set('ip', process.env.NODE_IP || '127.0.0.1');
+app.set('port', 8080);
+app.set('ip', '0.0.0.0');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
