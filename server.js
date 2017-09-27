@@ -92,7 +92,7 @@ function memoryUsage() {
                 //         console.log(result);
                 //     });
 
-                return app.locals.core.refresh();
+                //return app.locals.core.refresh();
             });
         })
         .catch(function (err) {

@@ -14,8 +14,8 @@ module.exports = {
     // initialize
     // **************************************************
     initialize: function () {
-        var db_user = (process.env.MONGODB_USER || 'userR87');
-        var db_password = (process.env.MONGODB_PASSWORD || 'CUqkOP8cLBkLPXmp');
+        var db_user = (process.env.MONGODB_USER || 'userI66');
+        var db_password = (process.env.MONGODB_PASSWORD || 'dtDsBJHl0IFsLPht');
         var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
         var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
         var db_name = (process.env.MONGODB_DATABASE || 'r4all');
