@@ -1,10 +1,10 @@
 'use strict';
 
-process.env.DEBUG = 'server, core, DDLValley, ReleaseBB, TwoDDL, NFOmation, IMDb, TraktTv, TMDb, KickassTorrents, RARBG, ThePirateBay, Addic7ed, LegendasDivx';
+process.env.DEBUG = 'Server, Core, Proxy, RARBG, IMDb, Addic7ed, LegendasDivx';
 
 var path = require('path');
 var http = require('http');
-var debug = require('debug')('server');
+var debug = require('debug')('Server');
 var express = require('express');
 var favicon = require('serve-favicon');
 var morgan = require('morgan');
@@ -22,25 +22,18 @@ app.locals.common = require('./common.js');
 app.locals.db = require('./database.js');
 app.locals.core = require('./core.js');
 app.locals.providers = {
-    ddlvalley: require('./providers/ddlvalley.js'),
-    rlsbb: require('./providers/rlsbb.js'),
-    twoddl: require('./providers/twoddl.js'),
-    nfomation: require('./providers/nfomation.js'),
-    imdb: require('./providers/imdb.js'),
-    trakttv: require('./providers/trakttv.js'),
-    themoviedb: require('./providers/themoviedb.js'),
-    kickasstorrents: require('./providers/kickasstorrents.js'),
-    rarbg: require('./providers/rarbg.js'),
-    thepiratebay: require('./providers/thepiratebay.js'),
-    addic7ed: require('./providers/addic7ed.js'),
-    legendasdivx: require('./providers/legendasdivx.js')
+    // proxy: require('./providers/proxy.js'),
+    // rarbg: require('./providers/rarbg.js'),
+    // imdb: require('./providers/imdb.js'),
+    // addic7ed: require('./providers/addic7ed.js'),
+    // legendasdivx: require('./providers/legendasdivx.js')
 };
-app.locals._ = require('underscore');
+app.locals._ = require('lodash');
 app.locals.moment = require('moment-timezone');
 
 // set server info
-app.set('port', 8080);
-app.set('ip', '0.0.0.0');
+app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080);
+app.set('ip', process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -48,7 +41,7 @@ app.set('view engine', 'ejs');
 
 app.use(favicon(path.join(__dirname, 'public', 'favicon.png')));
 app.use(morgan('combined', {
-    skip: function (req, res) {
+    skip: function(req, res) {
         return res.statusCode < 400;
     }
 }));
@@ -80,22 +73,41 @@ function memoryUsage() {
 
 (function initApp() {
     app.locals.db.initialize()
-        .then(app.locals.db.setSettings)
         .then(memoryUsage)
-        .then(function () {
-            return http.createServer(app).listen(app.get('port'), app.get('ip'), function () {
+        .then(function() {
+            return http.createServer(app).listen(app.get('port'), app.get('ip'), function() {
                 debug('Express server listening on port ' + app.get('port'));
 
-                // global.proxy = 'http://138.201.63.123:31288';
-                // app.locals.providers.rarbg.fetch('The.Blacklist.S04E15.720p.HDTV.x264-SVA', 's720p')
-                //     .then(function(result){
-                //         console.log(result);
-                //     });
-
-                //return app.locals.core.refresh();
+                return app.locals.core.refresh();
             });
         })
-        .catch(function (err) {
+        .catch(function(err) {
             console.log(err);
         });
 })();
+
+
+
+var rarbg = require('./providers/rarbg.js');
+
+rarbg.fetchReleases().then(function() {
+    console.log(Object.keys(rarbg.newReleases).length);
+});
+
+// var url = 'https://rarbg.to/torrents.php?category=44%3B45%3B41&page=1';
+// var validation = {type: 'html', element: '.lista2t'};
+
+// var url = 'https://torrentapi.org/pubapi_v2.php';
+// var validation = {type: 'json'};
+
+// app.locals.providers.proxy.fetch(url, validation).then(function(result){
+//     if(result) {
+//         console.log(global.proxy);
+
+//         app.locals.providers.rarbg.fetch().then(function(){
+//             console.log(app.locals.providers.rarbg.newReleases);
+//         });
+//     } else {
+//         console.log('not found');
+//     }
+// });

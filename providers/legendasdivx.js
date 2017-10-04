@@ -2,7 +2,7 @@
 
 var debug = require('debug')('LegendasDivx');
 var cheerio = require('cheerio');
-var _ = require('underscore');
+var _ = require('lodash');
 
 var log = require('../logger.js');
 var common = require('../common.js');

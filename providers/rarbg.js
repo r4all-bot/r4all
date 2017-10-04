@@ -1,143 +1,130 @@
 'use strict';
 
 var Promise = require('bluebird');
-var request = require('request');
 var debug = require('debug')('RARBG');
-var _ = require('underscore');
+var _ = require('lodash');
+var moment = require('moment-timezone');
+var cheerio = require('cheerio');
 
 var log = require('../logger.js');
 var common = require('../common.js');
+var proxy = require('./proxy.js');
 
 var RARBG = function () {
     this.URL = 'https://rarbg.to';
-    this.SEARCH_URL = this.URL + '/torrents.php?search={s}';
-    this.API_URL = 'https://torrentapi.org';
-    this.TORRENT_URL = this.API_URL + '/redirect_to_info.php?token={token}&p={torrentId}';
+    this.TORRENTLIST_URL = this.URL + '/torrents.php?category=44%3B45%3B41&page={page}'
 
     // status
     this.isOn = true;
+    this.proxy = null;
+
+    this.lastRelease = null;
+    this.newReleases = null;
 };
 RARBG.prototype.constructor = RARBG;
 
-var token = null;
+var getReleases = function (html, page) {
+    var lastRelease = this.lastRelease;
+    var done = false;
 
-var setToken = function () {
-    return _.bind(get, this)({ 'get_token': 'get_token' })
-        .then(function (res) {
-            if (res.hasOwnProperty('token')) {
-                token = res.token;
-            } else {
-                throw 'Unable to fetch token';
-            }
-        });
-};
+    var $ = cheerio.load(html);
 
-var get = function (params) {
+    // validate the page
+    if (!$('.lista2t').length) throw 'site validation failed (fetchReleases)';
+
     var _this = this;
 
-    return new Promise(function (resolve, reject) {
-        params = params || {};
-
-        var req = {
-            //proxy: global.proxy,
-            uri: _this.API_URL + '/pubapi_v2.php',
-            method: 'GET',
-            qs: params,
-            useQuerystring: true,
-            json: true,
-            timeout: 10000
+    // loop through every row
+    $('.lista2t .lista2').each(function () {
+        var release = {
+            category: parseInt(common.rem(/\/torrents\.php\?category=(\d+)/i, $(this).find('.lista').eq(0).find('a[href^="/torrents.php?category="]').attr('href'))),
+            name: common.unleak($(this).find('.lista').eq(1).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
+            imdbId: common.rem(/\/torrents\.php\?imdb=(tt\d+)/i, $(this).find('.lista').eq(1).find('a[href^="/torrents.php?imdb="]').attr('href')),
+            pubdate: common.unleak($(this).find('.lista').eq(2).text())
         };
 
-        debug(req.uri);
 
-        try {
-            request(req, function (err, res, data) {
-                if (err || res.statusCode != 200) {
-                    return reject(err || 'Status Code is != 200');
-                } else if (!data) {
-                    return reject('No data returned');
-                } else {
-                    return resolve(data);
+        if ([41, 44, 45].indexOf(release.category) != -1 && release.name && moment(release.pubdate, 'YYYY-MM-DD HH:mm:ss').isValid()) {
+            release.pubdate = moment.tz(release.pubdate, 'YYYY-MM-DD HH:mm:ss', process.env.TZ);
+
+            // define stop point
+            if (lastRelease && release.pubdate.diff(lastRelease.pubdate) <= 0) {
+                if (release.name == lastRelease.name || release.pubdate.isBefore(lastRelease.pubdate)) {
+                    debug('site scraping done at ' + release.pubdate.tz('Europe/Lisbon').format('YYYY-MM-DD HH:mm:ss'));
+                    done = true;
+                    return false;
                 }
-            });
-        } catch (e) {
-            return reject(e);
+            }
+
+            release._id = release.name.replace(/[^\w_]/g, '').toUpperCase();
+            release.category = common.getCategory(release.category);
+            release.pubdate = release.pubdate.toDate();
+
+            _this.newReleases[release._id] = release;
+        } else {
+            throw 'site scraping: ' + release.category + '|' + release.name + '|' + release.pubdate;
         }
+    });
+
+    // check if reached last page
+    if (!done && !$('#pager_links').find('a[title="next page"]').length) {
+        debug('site scraping reached the last page: ' + page);
+        done = true;
+    }
+
+    return done || Promise.delay(5 * 1000).then(function () {
+        return _.bind(getReleasesFromPage, _this)(++page);
     });
 };
 
-var query = function (params) {
+var getReleasesFromPage = function (page, attempt) {
+    var url = this.TORRENTLIST_URL;
+
+    page = page || 1;
+    attempt = attempt || 1;
+
+    url = url.replace('{page}', page);
+
+    debug(url);
+
     var _this = this;
+    //##
+    //if (page == 4) return;
 
-    return Promise.resolve(token || _.bind(setToken, this)())
-        .then(function () {
-            params.name = 'r4all';
-            params.token = token;
+    return common.request(url, { proxy: this.proxy })
+        .then(function (html) {
+            return _.bind(getReleases, _this)(html, page);
+        })
+        .catch(function (err) {
+            if (attempt > 5) throw err;
 
-            return _.bind(get, _this)(params)
-                .then(function (res) {
-                    if ([1, 2, 3, 4].indexOf(res['error_code']) > -1) {
-                        token = null;
-                        return _.bind(query, _this)(params);
-                    } else if (res['error_code'] == 5) {
-                        return Promise.resolve().delay(2000)
-                            .then(function () {
-                                return _.bind(query, _this)(params);
-                            });
-                    } else {
-                        return res['torrent_results'];
-                    }
+            return proxy.fetch(url, { type: 'html', element: '.lista2t' })
+                .then(function (proxy) {
+                    if (!proxy) throw err;
+
+                    _this.proxy = proxy;
+
+                    debug('using new proxy: ' + proxy);
+
+                    return _.bind(getReleasesFromPage, _this)(page, ++attempt);
                 });
         });
 };
 
-var fetchTorrent = function (torrents) {
-    var torrent = {};
-
-    if (torrents && torrents[0]) {
-        torrent = {
-            torrentProvider: 'rarbg',
-            torrentId: common.rem(/&p=(\w+?)(?:&|$)/, torrents[0].info_page),
-            torrentName: torrents[0].title,
-            magnetLink: torrents[0].download,
-            imdbId: torrents[0].episode_info && torrents[0].episode_info.imdb
-        }
-    }
-
-    // data validation
-    if (!torrent.torrentId || !torrent.magnetLink || !common.getInfohash(torrent.magnetLink)) {
-        torrent = null;
-    }
-
-    return torrent;
-};
-
-RARBG.prototype.fetch = function (releaseName, category) {
-    var params = {
-        mode: 'search',
-        search_string: releaseName,
-        sort: 'seeders',
-        format: 'json_extended'
-    };
-
-    if (category == 'm720p')
-        params.category = 45;
-    else if (category == 'm1080p')
-        params.category = 44;
-    else if (category == 's720p')
-        params.category = 41;
+RARBG.prototype.fetchReleases = function () {
+    // init
+    this.newReleases = {};
 
     var _this = this;
 
-    return _.bind(query, this)(params)
-        .then(fetchTorrent)
-        .then(function (torrent) {
+    return _.bind(getReleasesFromPage, _this)()
+        .then(function () {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
             }
 
-            return torrent;
+            return true;
         })
         .catch(function (err) {
             if (_this.isOn) {
@@ -145,7 +132,7 @@ RARBG.prototype.fetch = function (releaseName, category) {
                 log.error('[RARBG] ', err);
             }
 
-            return null;
+            return false;
         });
 };
 

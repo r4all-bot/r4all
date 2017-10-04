@@ -1,72 +1,71 @@
 'use strict';
 
 var Promise = require('bluebird');
-var request = require('request');
+var request = require('request').defaults({
+    method: 'GET',
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate'
+    },
+    timeout: 30 * 1000,
+    jar: true
+});
 var zlib = require('zlib');
 var URI = require('urijs');
 var latenize = require('latenize');
 
 var settings = require('./settings.js');
 
-var common = module.exports = {
-    req: function (url, referer) {
-        return new Promise(function (resolve, reject) {
-            referer = referer || url; // check if referer is set
+var req = function (url, options) {
+    return new Promise(function (resolve, reject) {
+        options = options || {};
 
-            var options = {
-                url: url,
-                headers: {
-                    'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-                    'accept-language': 'en-US,en;q=0.8',
-                    'accept-encoding': 'gzip,deflate',
-                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.143 Safari/537.36',
-                    // 'x-forwarded-for': '199.254.254.254', // disable IMDb automatic geo-location
-                    'referer': referer
-                },
-                timeout: 120000,
-                // rejectUnauthorized: false // legendasdivx - unable to verify the first certificate
-            };
+        options.url = url;
 
-            var req = request.get(options);
+        var r = request(options);
 
-            req.on('response', function (res) {
-                var chunks = [];
+        r.on('response', function (res) {
+            var chunks = [];
 
-                res.on('data', function (chunk) {
-                    chunks.push(chunk);
-                });
-
-                res.on('end', function () {
-                    var buffer = Buffer.concat(chunks);
-                    var encoding = res.headers['content-encoding'];
-
-                    if (encoding == 'gzip') {
-                        zlib.gunzip(buffer, function (err, decoded) {
-                            if (err) reject(err);
-                            else resolve(decoded && decoded.toString());
-                        });
-                    } else if (encoding == 'deflate') {
-                        zlib.inflate(buffer, function (err, decoded) {
-                            if (err) reject(err);
-                            else resolve(decoded && decoded.toString());
-                        });
-                    } else {
-                        resolve(buffer.toString());
-                    }
-                });
+            res.on('data', function (chunk) {
+                chunks.push(chunk);
             });
 
-            req.on('error', function (err) {
-                reject(err);
+            res.on('end', function () {
+                var buffer = Buffer.concat(chunks);
+                var encoding = res.headers['content-encoding'];
+
+                if (encoding == 'gzip') {
+                    zlib.gunzip(buffer, function (err, decoded) {
+                        if (err) reject(err);
+                        else resolve(decoded && decoded.toString());
+                    });
+                } else if (encoding == 'deflate') {
+                    zlib.inflate(buffer, function (err, decoded) {
+                        if (err) reject(err);
+                        else resolve(decoded && decoded.toString());
+                    });
+                } else {
+                    resolve(buffer.toString());
+                }
             });
         });
-    },
 
-    retry: function (url, referer) {
+        r.on('error', function (err) {
+            reject(err);
+        });
+    }).timeout(30 * 1000);
+};
+
+var common = module.exports = {
+    request: function (url, options, retryAttempts) {
+        retryAttempts = retryAttempts || 1;
+
         return new Promise(function (resolve, reject) {
             (function retry(attempt) {
-                return common.req(url, referer)
+                return req(url, options)
                     .then(resolve)
                     .catch(function (err) {
                         if (attempt > 0) {
@@ -77,7 +76,7 @@ var common = module.exports = {
                             return reject(err);
                         }
                     });
-            })(settings.attempts);
+            })(--retryAttempts);
         });
     },
 
@@ -103,6 +102,10 @@ var common = module.exports = {
         } catch (err) {
             return null;
         }
+    },
+
+    getCategory: function (categoryId) {
+        return categoryId;
     },
 
     resizeImage: function (imageUrl, providers, size) {

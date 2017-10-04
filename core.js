@@ -1,8 +1,8 @@
 'use strict';
 
+var debug = require('debug')('Core');
 var Promise = require('bluebird');
-var debug = require('debug')('core');
-var _ = require('underscore');
+var _ = require('lodash');
 var moment = require('moment');
 
 var log = require('./logger.js');
@@ -10,13 +10,9 @@ var settings = require('./settings.js');
 var common = require('./common.js');
 var db = require('./database.js');
 var providers = {
-    ddlvalley: require('./providers/ddlvalley.js'),
-    rlsbb: require('./providers/rlsbb.js'),
-    twoddl: require('./providers/twoddl.js'),
-    nfomation: require('./providers/nfomation.js'),
+    rarbg: require('./providers/rarbg.js'),
     imdb: require('./providers/imdb.js'),
     kickasstorrents: require('./providers/kickasstorrents.js'),
-    rarbg: require('./providers/rarbg.js'),
     thepiratebay: require('./providers/thepiratebay.js'),
     addic7ed: require('./providers/addic7ed.js'),
     legendasdivx: require('./providers/legendasdivx.js')
@@ -43,18 +39,6 @@ var Core = function () {
 
     this.clearTimer = function () {
         clearTimeout(timer);
-    };
-
-    this.setUpdReleases = function (releases) {
-        updReleases = {};
-
-        _.each(releases, function (r) {
-            updReleases[r._id] = r;
-        });
-    };
-
-    this.getUpdRelease = function (_id) {
-        return updReleases[_id];
     };
 
     this.setShowList = function (shows) {
@@ -86,140 +70,37 @@ Core.prototype.constructor = Core;
 // **************************************************
 // fetch & filter & upsert releases
 // **************************************************
-var fetchReleases = function (feedname, category) {
-    var feed = providers[feedname];
+var fetchReleases = function () {
+    var rarbg = providers.rarbg;
 
-    category = category || 's720p';
-
-    debug('fetching ' + feedname + '-' + category);
+    debug('fetching from rarbg');
 
     var _this = this;
 
-    return Promise.join(db.getLastPost(feedname, category), db.getPending(feedname, category), function (lastPost, pending) {
-            feed.lastPost = lastPost;
-            feed.pending = pending;
-            return feed.fetch(category);
+    return db.getLastRelease()
+        .then(function (lastRelease) {
+            rarbg.lastRelease = lastRelease;
+            return rarbg.fetch();
         })
         .then(function (success) {
-            if (!success || _.isEmpty(feed.newReleases)) {
+            if (!success || _.isEmpty(rarbg.newReleases)) {
                 return;
             }
 
-            return _.bind(getUpdReleases, _this)(feedname)
+            return Promise.resolve()
                 .thenReturn(_.values(feed.newReleases))
                 .map(function (release) {
-                    return _.bind(filterRelease, _this)(release, feedname);
-                })
-                .then(function () {
-                    return feed.newLastPost && db.upsertLastPost(feed.newLastPost);
+                    return _.bind(filterRelease, _this)(release);
                 });
-        })
-        .then(function () {
-            switch (category) {
-                case 's720p':
-                    return _.bind(fetchReleases, _this)(feedname, 'm720p');
-                case 'm720p':
-                    return _.bind(fetchReleases, _this)(feedname, 'm1080p');
-                default:
-                    return;
-            }
         });
 };
 
-var getUpdReleases = function (feedname) {
-    var feed = providers[feedname];
+var filterRelease = function (release) {
+    release.parsed = common.scene.parseRelease(release.name, release.category);
 
-    var _this = this;
-
-    return db.getUpdReleases(_.compact(_.pluck(feed.newReleases, '_id')))
-        .then(_this.setUpdReleases);
-};
-
-var filterRelease = function (release, feedname) {
-    var uRelease = release._id && this.getUpdRelease(release._id);
-    var updated = false;
-
-    if (!release.isScene) {
-        if (uRelease) {
-            return removeRelease(release, feedname, '(updated and was removed: not scene)')
-                .then(function () {
-                    return db.removePending(release, feedname);
-                });
-        } else {
-            return removePending(release, feedname, '(not scene)');
-        }
-    }
-
-    if (!release.name) {
-        if (release.category.charAt(0) == 'm') {
-            if (common.scene.getReleaseName(release.postTitle, release.category == 'm720p' ? 'm1080p' : 'm720p')) { // look for wrong tagged releases
-                release.category = (release.category == 'm720p' ? 'm1080p' : 'm720p');
-                release.name = common.scene.getReleaseName(release.postTitle, release.category);
-                release._id = release.name.replace(/[^\w_]/g, '').toUpperCase();
-            } else {
-                return removePending(release, feedname, '(not ' + release.category.substr(1) + ')');
-            }
-        } else {
-            if (moment().diff(moment(release.date), 'days') > 7) { // do not consider 1 week old pending releases 
-                return removePending(release, feedname, '(1 week old pending)');
-            } else {
-                return db.upsertPending(release, feedname);
-            }
-        }
-    }
-
-    if (uRelease) {
-        if (release.category != uRelease.category) {
-            updated = true;
-            log.warn('(category updated)', {
-                name: release.name,
-                feed: feedname,
-                postId: release[feedname],
-                category: uRelease.category,
-                category1: release.category
-            });
-        }
-
-        if (release[feedname] != uRelease[feedname]) {
-            updated = true;
-            log.warn('(postId updated)', {
-                name: release.name,
-                feed: feedname,
-                postId: uRelease[feedname],
-                postId1: release[feedname]
-            });
-        }
-
-        if (release.category.charAt(0) == 'm') {
-            if (release.imdbId != uRelease.imdbId) {
-                updated = true;
-                log.warn('(imdb updated)', {
-                    name: release.name,
-                    feed: feedname,
-                    postId: release[feedname],
-                    imdb: uRelease.imdbId,
-                    imdb1: release.imdbId
-                });
-            }
-
-            if (release.nfo != uRelease.nfo) {
-                updated = true;
-                log.warn('(nfo updated)', {
-                    name: release.name,
-                    feed: feedname,
-                    postId: release[feedname],
-                    nfo: uRelease.nfo,
-                    nfo1: release.nfo
-                });
-            }
-        }
-
-        if (moment(release.date).isAfter(uRelease.date)) {
-            updated = true;
-        }
-
-        if (!updated) {
-            return db.removePending(release, feedname);
+    if (release.parsed) {
+        if (release.category.charAt(0) == 's') {
+            release.showId = release.parsed.releaseTitle;
         }
 
         return db.upsertRelease(release)
@@ -227,62 +108,25 @@ var filterRelease = function (release, feedname) {
                 return db.removePending(release, feedname);
             });
     } else {
-        release.parsed = common.scene.parseRelease(release.name, release.category);
-
-        if (release.parsed) {
-            if (release.category.charAt(0) == 's') {
-                release.showId = release.parsed.releaseTitle;
-            }
+        if (release.category.charAt(0) == 'm') {
+            release.isVerified = 0;
 
             return db.upsertRelease(release)
                 .then(function () {
                     return db.removePending(release, feedname);
+                })
+                .then(function () {
+                    log.warn('(movie not parsed)', {
+                        name: release.name,
+                        feed: feedname,
+                        postId: release[feedname]
+                    });
+                    return;
                 });
         } else {
-            if (release.category.charAt(0) == 'm') {
-                release.isVerified = 0;
-
-                return db.upsertRelease(release)
-                    .then(function () {
-                        return db.removePending(release, feedname);
-                    })
-                    .then(function () {
-                        log.warn('(movie not parsed)', {
-                            name: release.name,
-                            feed: feedname,
-                            postId: release[feedname]
-                        });
-                        return;
-                    });
-            } else {
-                return removePending(release, feedname, '(show not parsed)');
-            }
+            return removePending(release, feedname, '(show not parsed)');
         }
     }
-};
-
-var removePending = function (release, feedname, msg) {
-    return db.removePending(release, feedname)
-        .then(function () {
-            log.drop(msg, {
-                name: release.name || release.postTitle,
-                feed: feedname,
-                postId: release[feedname]
-            });
-            return;
-        });
-};
-
-var removeRelease = function (release, feedname, msg) {
-    return db.removeRelease(release)
-        .then(function () {
-            log.drop(msg, {
-                name: release.name || release.postTitle,
-                feed: feedname,
-                postId: feedname && release[feedname]
-            });
-            return;
-        });
 };
 
 // **************************************************
@@ -596,8 +440,8 @@ Core.prototype.refresh = function () {
     var _this = this;
 
     return db.setSettings()
-        .then(_.partial(_.bind(fetchReleases, this), 'ddlvalley'))
-        .then(_.bind(fetchShowList, _this))
+        .then(_.bind(fetchReleases, this))
+        .then(_.bind(fetchShowList, this))
         .then(_.partial(db.getJobs, fetchAllJobs))
         .each(function (release) {
             return _.bind(jobHandler, _this)(release);

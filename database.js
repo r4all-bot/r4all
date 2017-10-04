@@ -2,7 +2,7 @@
 
 var Promise = require('bluebird');
 var MongoDB = Promise.promisifyAll(require('mongodb'));
-var _ = require('underscore');
+var _ = require('lodash');
 var moment = require('moment');
 
 var settings = require('./settings.js');
@@ -13,43 +13,10 @@ module.exports = {
     // **************************************************
     // initialize
     // **************************************************
-    initialize: function () {
-        var db_user = (process.env.MONGODB_USER || 'userI66');
-        var db_password = (process.env.MONGODB_PASSWORD || 'dtDsBJHl0IFsLPht');
-        var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
-        var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
-        var db_name = (process.env.MONGODB_DATABASE || 'r4all');
-        
-        return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/' + db_name)
-            .then(function (database) {
+    initialize: function() {
+        return MongoDB.MongoClient.connectAsync((process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/') + 'r4all')
+            .then(function(database) {
                 db = database;
-                return;
-            });
-    },
-
-    setSettings: function () {
-        return db.collection('settings').find().toArrayAsync()
-            .then(function (settings) {
-                if (_.isEmpty(settings)) {
-                    // default settings
-                    settings = [{
-                        _id: 'proxy',
-                        value: 'http://142.4.200.192:80'
-                    }];
-
-                    return db.collection('settings').insertAsync(settings)
-                        .then(function (result) {
-                            return settings;
-                        });
-                }
-
-                return settings;
-            })
-            .then(function (settings) {
-                _.map(settings, function (setting) {
-                    global[setting._id] = setting.value;
-                });
-
                 return;
             });
     },
@@ -57,15 +24,15 @@ module.exports = {
     // **************************************************
     // get
     // **************************************************
-    getLastPost: function (feedname, category) {
+    getLastPost: function(feedname, category) {
         return db.collection('feeds').find({ _id: feedname + '-' + category }, { _id: 0 }).limit(1).nextAsync();
     },
 
-    getPending: function (feedname, category) {
+    getPending: function(feedname, category) {
         return db.collection('pending').find({ feed: feedname + '-' + category }, { _id: 0 }).toArrayAsync();
     },
 
-    getUpdReleases: function (releasesList) {
+    getUpdReleases: function(releasesList) {
         // can happen!
         if (_.isEmpty(releasesList)) {
             return Promise.resolve([]);
@@ -84,11 +51,11 @@ module.exports = {
         }).toArrayAsync();
     },
 
-    getShowList: function () {
+    getShowList: function() {
         return db.collection('shows').find({}).toArrayAsync();
     },
 
-    getJobs: function (fetchAllJobs) {
+    getJobs: function(fetchAllJobs) {
         return db.collection('releases').aggregateAsync([{
             $match: {
                 date: { $gt: fetchAllJobs ? moment([1970]).toDate() : moment().subtract(1, 'months').toDate() },
@@ -139,7 +106,7 @@ module.exports = {
     // **************************************************
     // get - dashboard
     // **************************************************
-    getReleases: function (view, page, param) {
+    getReleases: function(view, page, param) {
         var match;
 
         page = page || 1;
@@ -256,13 +223,13 @@ module.exports = {
         return db.collection('releases').aggregateAsync(pipeline);
     },
 
-    getShow: function (s) {
+    getShow: function(s) {
         var r = new RegExp('^' + s + '$', 'i');
 
         return db.collection('shows').find({ _id: { $regex: r } }, { _id: 1 }).limit(1).nextAsync();
     },
 
-    getUnverifiedMovies: function () {
+    getUnverifiedMovies: function() {
         return db.collection('releases').find({
             isVerified: 0,
             $or: [{
@@ -279,11 +246,11 @@ module.exports = {
         }).sort({ name: 1 }).toArrayAsync();
     },
 
-    getUnverifiedShows: function () {
+    getUnverifiedShows: function() {
         return db.collection('shows').find({ isVerified: null }).sort({ _id: 1 }).toArrayAsync();
     },
 
-    getReleasesCategoryCount: function () {
+    getReleasesCategoryCount: function() {
         return db.collection('releases').aggregateAsync({
             $group: {
                 _id: {
@@ -295,18 +262,18 @@ module.exports = {
         });
     },
 
-    getUnverifiedShowsCount: function () {
+    getUnverifiedShowsCount: function() {
         return db.collection('shows').countAsync({ isVerified: null });
     },
 
     // **************************************************
     // upsert
     // **************************************************
-    upsertLastPost: function (lastPost) {
+    upsertLastPost: function(lastPost) {
         return db.collection('feeds').updateOneAsync({ _id: lastPost._id }, { $set: lastPost }, { upsert: true });
     },
 
-    upsertPending: function (release, feedname) {
+    upsertPending: function(release, feedname) {
         return db.collection('pending').updateOneAsync({
             feed: feedname + '-' + release.category,
             postId: release[feedname]
@@ -321,7 +288,7 @@ module.exports = {
         });
     },
 
-    upsertRelease: function (release) {
+    upsertRelease: function(release) {
         delete release.postTitle;
         delete release.isScene;
 
@@ -336,11 +303,11 @@ module.exports = {
         return db.collection('releases').updateOneAsync({ _id: release._id }, update, { upsert: true });
     },
 
-    upsertShow: function (show) {
+    upsertShow: function(show) {
         return db.collection('shows').updateOneAsync({ _id: show._id }, { $set: show }, { upsert: true });
     },
 
-    upsertIMDb: function (imdbInfo) {
+    upsertIMDb: function(imdbInfo) {
         return db.collection('imdb').updateOneAsync({
             _id: imdbInfo._id
         }, {
@@ -354,27 +321,27 @@ module.exports = {
     // **************************************************
     // remove
     // **************************************************
-    removePending: function (release, feedname) {
+    removePending: function(release, feedname) {
         return db.collection('pending').deleteOneAsync({
             feed: feedname + '-' + release.category,
             postId: release[feedname]
         });
     },
 
-    removeRelease: function (release) {
+    removeRelease: function(release) {
         return db.collection('releases').deleteOneAsync({ _id: release._id });
     },
 
     // **************************************************
     // database maintenance
     // **************************************************
-    getIMDbOutdated: function () {
+    getIMDbOutdated: function() {
         return db.collection('imdb').aggregateAsync([
                 { $sort: { updatedOn: 1 } },
                 { $limit: 1 },
                 { $project: { _id: 1 } }
             ])
-            .then(function (docs) {
+            .then(function(docs) {
                 return docs[0];
             });
     },
@@ -382,11 +349,11 @@ module.exports = {
     // **************************************************
     // memory
     // **************************************************
-    insertMemoryUsage: function (data) {
+    insertMemoryUsage: function(data) {
         return db.collection('memory').insertAsync(data);
     },
 
-    getMemoryUsage: function () {
+    getMemoryUsage: function() {
         return db.collection('memory').aggregateAsync([{
             $sort: { date: 1 }
         }, {
@@ -401,7 +368,7 @@ module.exports = {
     // **************************************************
     // api ## final projections review...
     // **************************************************
-    getFeed: function (filters) {
+    getFeed: function(filters) {
         var pipeline = [];
 
         // fetch magnetLink && subtitleId
@@ -454,7 +421,7 @@ module.exports = {
         return db.collection('releases').aggregateAsync(pipeline);
     },
 
-    getAppView: function (filters) {
+    getAppView: function(filters) {
         switch (filters.view) {
             case 'feedView':
                 return this.getAppFeedView(filters);
@@ -470,7 +437,7 @@ module.exports = {
         }
     },
 
-    getAppFeedView: function (filters) {
+    getAppFeedView: function(filters) {
         var pipeline = [];
 
         // from
@@ -525,7 +492,7 @@ module.exports = {
         return db.collection('releases').aggregateAsync(pipeline);
     },
 
-    getAppReleasesView: function (filters) {
+    getAppReleasesView: function(filters) {
         var pipeline = [];
 
         // filter by user collection
@@ -662,7 +629,7 @@ module.exports = {
         return db.collection('releases').aggregateAsync(pipeline);
     },
 
-    getAppIMDbView: function (filters) {
+    getAppIMDbView: function(filters) {
         var pipeline = [];
 
         // filter by user collection
@@ -736,7 +703,7 @@ module.exports = {
         return db.collection('imdb').aggregateAsync(pipeline);
     },
 
-    getAppDetail: function (filters) {
+    getAppDetail: function(filters) {
         var collection, pipeline = [];
         var isIMDb = filters._id.match(/^tt\d+$/) !== null;
 
@@ -938,7 +905,7 @@ module.exports = {
     // **************************************************
     // disconnecting
     // **************************************************
-    end: function () {
+    end: function() {
         db.close();
     }
 };

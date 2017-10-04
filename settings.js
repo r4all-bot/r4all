@@ -2,7 +2,7 @@
 
 module.exports = {
     // dashboard - # records per page 
-    dashboardPageRecords: 10,
+    dashboardPageRecords: 50,
 
     // app - # records per page 
     appPageRecords: 50,
@@ -11,6 +11,5 @@ module.exports = {
     refreshInterval: 15 * 60 * 1000,
 
     // request attempts
-    attempts: 5, // # of retrys
     attemptsInterval: 5 * 1000 // time interval between each retry
 };

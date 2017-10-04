@@ -9,7 +9,7 @@ var log = require('../logger.js');
 var common = require('../common.js');
 
 var DDLValley = function () {
-    this.URL = 'http://www.ddlvalley.rocks';
+    this.URL = 'http://www.ddlvalley.cool';
     this.SEARCH_URL = this.URL + '/?s={s}';
     this.POST_URL = this.URL + '/?p={postId}';
 
