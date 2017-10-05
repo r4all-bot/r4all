@@ -1,7 +1,7 @@
 'use strict';
 
 var Promise = require('bluebird');
-var _ = require('underscore');
+var _ = require('lodash');
 
 function checkAuth(req, res, next) {
     if (!req.session.user_id) {

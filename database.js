@@ -14,7 +14,13 @@ module.exports = {
     // initialize
     // **************************************************
     initialize: function() {
-        return MongoDB.MongoClient.connectAsync((process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/') + 'r4all')
+        var db_user = (process.env.MONGODB_USER || 'userPHF');
+        var db_password = (process.env.MONGODB_PASSWORD || 'T0Osxv3Mw0vpCAvd');
+        var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
+        var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
+        var db_name = (process.env.MONGODB_DATABASE || 'r4all');
+
+        return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function(database) {
                 db = database;
                 return;
@@ -24,35 +30,16 @@ module.exports = {
     // **************************************************
     // get
     // **************************************************
-    getLastPost: function(feedname, category) {
-        return db.collection('feeds').find({ _id: feedname + '-' + category }, { _id: 0 }).limit(1).nextAsync();
-    },
-
-    getPending: function(feedname, category) {
-        return db.collection('pending').find({ feed: feedname + '-' + category }, { _id: 0 }).toArrayAsync();
-    },
-
-    getUpdReleases: function(releasesList) {
-        // can happen!
-        if (_.isEmpty(releasesList)) {
-            return Promise.resolve([]);
-        }
-
-        return db.collection('releases').find({
-            _id: { $in: releasesList }
-        }, {
-            category: 1,
-            date: 1,
-            imdbId: 1,
-            nfo: 1,
-            ddlvalley: 1,
-            rlsbb: 1,
-            twoddl: 1
-        }).toArrayAsync();
+    getLastRelease: function() {
+        return db.collection('releases').find().sort({ pubdate: -1 }).limit(1).nextAsync();
     },
 
     getShowList: function() {
         return db.collection('shows').find({}).toArrayAsync();
+    },
+
+    getUnverifiedReleases: function() {
+        return db.collection('releases').find({ isVerified: null }).sort({ pubdate: 1 }).toArrayAsync();
     },
 
     getJobs: function(fetchAllJobs) {
@@ -269,29 +256,7 @@ module.exports = {
     // **************************************************
     // upsert
     // **************************************************
-    upsertLastPost: function(lastPost) {
-        return db.collection('feeds').updateOneAsync({ _id: lastPost._id }, { $set: lastPost }, { upsert: true });
-    },
-
-    upsertPending: function(release, feedname) {
-        return db.collection('pending').updateOneAsync({
-            feed: feedname + '-' + release.category,
-            postId: release[feedname]
-        }, {
-            $set: {
-                feed: feedname + '-' + release.category,
-                postId: release[feedname],
-                date: release.date
-            }
-        }, {
-            upsert: true
-        });
-    },
-
     upsertRelease: function(release) {
-        delete release.postTitle;
-        delete release.isScene;
-
         var update = {
             $set: release
         };
@@ -321,13 +286,6 @@ module.exports = {
     // **************************************************
     // remove
     // **************************************************
-    removePending: function(release, feedname) {
-        return db.collection('pending').deleteOneAsync({
-            feed: feedname + '-' + release.category,
-            postId: release[feedname]
-        });
-    },
-
     removeRelease: function(release) {
         return db.collection('releases').deleteOneAsync({ _id: release._id });
     },

@@ -3,14 +3,14 @@
 var Promise = require('bluebird');
 var debug = require('debug')('IMDb');
 var cheerio = require('cheerio');
-var _ = require('underscore');
+var _ = require('lodash');
 var moment = require('moment');
 
 var log = require('../logger.js');
 var common = require('../common.js');
 
-var trakttv = require('./trakttv.js');
-var mdb = require('./themoviedb.js');;
+//var trakttv = require('./trakttv.js');
+//var mdb = require('./themoviedb.js');;
 
 var IMDb = function () {
     this.URL = 'http://akas.imdb.com';
@@ -76,7 +76,7 @@ var fetchInfo = function (html) {
 
     var _this = this;
 
-    return trakttv.fetch(info._id, info.type)
+    return Promise.resolve() //trakttv.fetch(info._id, info.type)
         .then(function (newInfo) {
             if (newInfo) {
                 info.trailer = newInfo.trailer || info.trailer;
@@ -86,7 +86,7 @@ var fetchInfo = function (html) {
                 }
             }
 
-            return mdb.fetch(info._id, info.type);
+            return; // mdb.fetch(info._id, info.type);
         })
         .then(function (newInfo) {
             if (newInfo) {

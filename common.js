@@ -18,32 +18,32 @@ var latenize = require('latenize');
 
 var settings = require('./settings.js');
 
-var req = function (url, options) {
-    return new Promise(function (resolve, reject) {
+var req = function(url, options) {
+    return new Promise(function(resolve, reject) {
         options = options || {};
 
         options.url = url;
 
         var r = request(options);
 
-        r.on('response', function (res) {
+        r.on('response', function(res) {
             var chunks = [];
 
-            res.on('data', function (chunk) {
+            res.on('data', function(chunk) {
                 chunks.push(chunk);
             });
 
-            res.on('end', function () {
+            res.on('end', function() {
                 var buffer = Buffer.concat(chunks);
                 var encoding = res.headers['content-encoding'];
 
                 if (encoding == 'gzip') {
-                    zlib.gunzip(buffer, function (err, decoded) {
+                    zlib.gunzip(buffer, function(err, decoded) {
                         if (err) reject(err);
                         else resolve(decoded && decoded.toString());
                     });
                 } else if (encoding == 'deflate') {
-                    zlib.inflate(buffer, function (err, decoded) {
+                    zlib.inflate(buffer, function(err, decoded) {
                         if (err) reject(err);
                         else resolve(decoded && decoded.toString());
                     });
@@ -53,23 +53,23 @@ var req = function (url, options) {
             });
         });
 
-        r.on('error', function (err) {
+        r.on('error', function(err) {
             reject(err);
         });
     }).timeout(30 * 1000);
 };
 
 var common = module.exports = {
-    request: function (url, options, retryAttempts) {
+    request: function(url, options, retryAttempts) {
         retryAttempts = retryAttempts || 1;
 
-        return new Promise(function (resolve, reject) {
+        return new Promise(function(resolve, reject) {
             (function retry(attempt) {
                 return req(url, options)
                     .then(resolve)
-                    .catch(function (err) {
+                    .catch(function(err) {
                         if (attempt > 0) {
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 return retry(--attempt);
                             }, settings.attemptsInterval);
                         } else {
@@ -80,7 +80,7 @@ var common = module.exports = {
         });
     },
 
-    unleak: function (str) { // cheerio+v8 "leaks" memory from original HTML
+    unleak: function(str) { // cheerio+v8 "leaks" memory from original HTML
         if (typeof str === 'string') {
             return (' ' + str).substr(1);
         } else if (str === '[object Array]') {
@@ -90,7 +90,7 @@ var common = module.exports = {
         }
     },
 
-    rem: function (regex, str) { // regular expression match
+    rem: function(regex, str) { // regular expression match
         try {
             var match = str.match(regex);
             match.shift(); // remove original string that was parsed
@@ -104,11 +104,14 @@ var common = module.exports = {
         }
     },
 
-    getCategory: function (categoryId) {
-        return categoryId;
+    getCategory: function(name, categoryId) {
+        var type = (categoryId = 41 ? 'show' : 'movie');
+        var quality = (name.indexOf('1080p') != -1 ? '1080p' : '720p');
+
+        return { type: type, quality: quality };
     },
 
-    resizeImage: function (imageUrl, providers, size) {
+    resizeImage: function(imageUrl, providers, size) {
         if (!imageUrl) return imageUrl;
 
         var uri = URI(imageUrl);
@@ -123,7 +126,7 @@ var common = module.exports = {
         }
     },
 
-    getInfohash: function (magnetLink) {
+    getInfohash: function(magnetLink) {
         var infohash = magnetLink && this.rem(/magnet:\?xt=urn:btih:(\w+?)&/, magnetLink);
         return infohash && infohash.toUpperCase();
     },
@@ -200,11 +203,11 @@ var common = module.exports = {
             s720p: '720p(?:\\.|_)(?:HDTV|WEBRip)'
         },
 
-        getReleaseName: function (postTitle, category) {
+        getReleaseName: function(postTitle, category) {
             var regex = new RegExp(this.typeMatch[category], 'i');
             var releaseName = null;
 
-            postTitle.split('&').some(function (r) {
+            postTitle.split('&').some(function(r) {
                 if (common.rem(regex, r) !== null) {
                     releaseName = r.trim();
                     return true;
@@ -216,7 +219,7 @@ var common = module.exports = {
             return releaseName;
         },
 
-        parseRelease: function (postTitle, category) {
+        parseRelease: function(postTitle, category) {
             var releaseName = this.getReleaseName(postTitle, category);
             var parsed = null;
 
@@ -240,7 +243,7 @@ var common = module.exports = {
                         parsed.tag = result[2];
                         parsed.group = result[3];
                     } else {
-                        result[2] = result[2].match(/\d{1,2}/gi).map(function (ep) { // episodes array generator
+                        result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
                             return parseInt(ep, 10);
                         });
 
@@ -260,7 +263,7 @@ var common = module.exports = {
             return parsed;
         },
 
-        titleEncode: function (title) {
+        titleEncode: function(title) {
             return latenize(title) // replace accented characters with non accented
                 .replace(/&/g, 'and') // replace & for and
                 .replace(/\+/g, 'plus') // replace + for plus

@@ -2,15 +2,15 @@
 
 var Promise = require('bluebird');
 var debug = require('debug')('RARBG');
+var cheerio = require('cheerio');
 var _ = require('lodash');
 var moment = require('moment-timezone');
-var cheerio = require('cheerio');
 
 var log = require('../logger.js');
 var common = require('../common.js');
 var proxy = require('./proxy.js');
 
-var RARBG = function () {
+var RARBG = function() {
     this.URL = 'https://rarbg.to';
     this.TORRENTLIST_URL = this.URL + '/torrents.php?category=44%3B45%3B41&page={page}'
 
@@ -23,27 +23,31 @@ var RARBG = function () {
 };
 RARBG.prototype.constructor = RARBG;
 
-var getReleases = function (html, page) {
+var getReleases = function(html, page) {
     var lastRelease = this.lastRelease;
     var done = false;
 
     var $ = cheerio.load(html);
 
     // validate the page
-    if (!$('.lista2t').length) throw 'site validation failed (fetchReleases)';
+    if (!$('.lista2t').length) throw 'site validation failed (getReleases)';
 
     var _this = this;
 
     // loop through every row
-    $('.lista2t .lista2').each(function () {
+    $('.lista2t .lista2').each(function() {
+        var column1 = $(this).find('.lista').eq(0);
+        var column2 = $(this).find('.lista').eq(1);
+        var column3 = $(this).find('.lista').eq(2);
+
         var release = {
-            category: parseInt(common.rem(/\/torrents\.php\?category=(\d+)/i, $(this).find('.lista').eq(0).find('a[href^="/torrents.php?category="]').attr('href'))),
-            name: common.unleak($(this).find('.lista').eq(1).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
-            imdbId: common.rem(/\/torrents\.php\?imdb=(tt\d+)/i, $(this).find('.lista').eq(1).find('a[href^="/torrents.php?imdb="]').attr('href')),
-            pubdate: common.unleak($(this).find('.lista').eq(2).text())
+            category: parseInt(common.rem(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
+            name: common.unleak($(column2).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
+            imdbId: common.rem(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href')),
+            pubdate: common.unleak($(column3).text())
         };
 
-
+        // validation
         if ([41, 44, 45].indexOf(release.category) != -1 && release.name && moment(release.pubdate, 'YYYY-MM-DD HH:mm:ss').isValid()) {
             release.pubdate = moment.tz(release.pubdate, 'YYYY-MM-DD HH:mm:ss', process.env.TZ);
 
@@ -57,7 +61,7 @@ var getReleases = function (html, page) {
             }
 
             release._id = release.name.replace(/[^\w_]/g, '').toUpperCase();
-            release.category = common.getCategory(release.category);
+            release.category = common.getCategory(release.name, release.category);
             release.pubdate = release.pubdate.toDate();
 
             _this.newReleases[release._id] = release;
@@ -72,53 +76,54 @@ var getReleases = function (html, page) {
         done = true;
     }
 
-    return done || Promise.delay(5 * 1000).then(function () {
+    return done || Promise.delay(1 * 1000).then(function() {
         return _.bind(getReleasesFromPage, _this)(++page);
     });
 };
 
-var getReleasesFromPage = function (page, attempt) {
+var getReleasesFromPage = function(page, attempt) {
     var url = this.TORRENTLIST_URL;
 
     page = page || 1;
     attempt = attempt || 1;
 
     url = url.replace('{page}', page);
-
-    debug(url);
-
+if(page == 4) return;
     var _this = this;
-    //##
-    //if (page == 4) return;
 
-    return common.request(url, { proxy: this.proxy })
-        .then(function (html) {
+    return Promise.resolve(this.proxy || proxy.fetch(url, { type: 'html', element: '.lista2t' }))
+        .then(function(proxy) {
+            if (!proxy) throw err;
+
+            if (_this.proxy != proxy) {
+                _this.proxy = proxy;
+                debug('using new proxy: ' + proxy);
+            }
+
+            debug(url);
+
+            return common.request(url, { proxy: _this.proxy });
+        })
+        .then(function(html) {
             return _.bind(getReleases, _this)(html, page);
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (attempt > 5) throw err;
 
-            return proxy.fetch(url, { type: 'html', element: '.lista2t' })
-                .then(function (proxy) {
-                    if (!proxy) throw err;
+            _this.proxy = null;
 
-                    _this.proxy = proxy;
-
-                    debug('using new proxy: ' + proxy);
-
-                    return _.bind(getReleasesFromPage, _this)(page, ++attempt);
-                });
+            return _.bind(getReleasesFromPage, _this)(page, ++attempt);
         });
 };
 
-RARBG.prototype.fetchReleases = function () {
+RARBG.prototype.fetchReleases = function() {
     // init
     this.newReleases = {};
 
     var _this = this;
 
     return _.bind(getReleasesFromPage, _this)()
-        .then(function () {
+        .then(function() {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -126,7 +131,7 @@ RARBG.prototype.fetchReleases = function () {
 
             return true;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[RARBG] ', err);

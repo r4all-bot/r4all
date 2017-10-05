@@ -1,6 +1,6 @@
 'use strict';
 
-process.env.DEBUG = 'Server, Core, Proxy, RARBG, IMDb, Addic7ed, LegendasDivx';
+process.env.DEBUG = 'Server, Core, Addic7ed, IMDb, LegendasDivx, Proxy, RARBG';
 
 var path = require('path');
 var http = require('http');
@@ -32,8 +32,8 @@ app.locals._ = require('lodash');
 app.locals.moment = require('moment-timezone');
 
 // set server info
-app.set('port', process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080);
-app.set('ip', process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1');
+app.set('port', 8080);
+app.set('ip', '0.0.0.0');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -61,38 +61,41 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 require('./routes')(app);
 
-function memoryUsage() {
-    var data = {
-        date: app.locals.moment().tz('Europe/Lisbon').toDate(),
-        rss: process.memoryUsage().rss
-    };
+// function memoryUsage() {
+//     var data = {
+//         date: app.locals.moment().tz('Europe/Lisbon').toDate(),
+//         rss: process.memoryUsage().rss
+//     };
 
-    return app.locals.db.insertMemoryUsage(data)
-        .then(setTimeout(memoryUsage, 15 * 60 * 1000));
-};
+//     return app.locals.db.insertMemoryUsage(data)
+//         .then(setTimeout(memoryUsage, 15 * 60 * 1000));
+// };
 
-(function initApp() {
-    app.locals.db.initialize()
-        .then(memoryUsage)
+// (function initApp() {
+//     app.locals.db.initialize()
+//         .then(memoryUsage)
+//         .then(function() {
+//             return http.createServer(app).listen(app.get('port'), app.get('ip'), function() {
+//                 debug('Express server listening on port ' + app.get('port'));
+
+//                 return app.locals.core.refresh();
+//             });
+//         })
+//         .catch(function(err) {
+//             console.log(err);
+//         });
+// })();
+
+
+return app.locals.db.initialize()
         .then(function() {
-            return http.createServer(app).listen(app.get('port'), app.get('ip'), function() {
-                debug('Express server listening on port ' + app.get('port'));
-
-                return app.locals.core.refresh();
-            });
+            return app.locals.core.refresh();
         })
-        .catch(function(err) {
-            console.log(err);
-        });
-})();
+// var rarbg = require('./providers/rarbg.js');
 
-
-
-var rarbg = require('./providers/rarbg.js');
-
-rarbg.fetchReleases().then(function() {
-    console.log(Object.keys(rarbg.newReleases).length);
-});
+// rarbg.fetchReleases().then(function() {
+//     console.log(Object.keys(rarbg.newReleases).length);
+// });
 
 // var url = 'https://rarbg.to/torrents.php?category=44%3B45%3B41&page=1';
 // var validation = {type: 'html', element: '.lista2t'};

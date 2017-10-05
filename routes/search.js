@@ -1,7 +1,7 @@
 'use strict';
 
 var express = require('express');
-var _ = require('underscore');
+var _ = require('lodash');
 var router = express.Router();
 
 module.exports = function (getLayoutData) {

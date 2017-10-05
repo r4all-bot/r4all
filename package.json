@@ -7,25 +7,26 @@
     "start": "node --optimize_for_size --max_old_space_size=460 --gc_interval=100 server.js"
   },
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "body-parser": "^1.17.2",
+    "bluebird": "^3.5.1",
+    "body-parser": "^1.18.2",
     "cheerio": "^0.22.0",
     "cookie-parser": "^1.4.3",
-    "debug": "^3.0.1",
+    "debug": "^3.1.0",
     "ejs": "^2.5.7",
-    "express": "^4.15.4",
+    "express": "^4.16.1",
     "express-ejs-layouts": "^2.3.1",
-    "express-session": "^1.15.5",
+    "express-session": "^1.15.6",
     "latenize": "^0.2.0",
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "moment-timezone": "^0.5.13",
     "mongodb": "^2.2.31",
-    "morgan": "^1.8.2",
-    "request": "^2.81.0",
-    "serve-favicon": "^2.4.3",
-    "urijs": "^1.18.12",
-    "winston": "^2.3.1",
-    "winston-daily-rotate-file": "^1.4.6"
+    "morgan": "^1.9.0",
+    "proxy-lists": "^1.14.1",
+    "request": "^2.83.0",
+    "serve-favicon": "^2.4.5",
+    "urijs": "^1.19.0",
+    "winston": "^2.4.0",
+    "winston-daily-rotate-file": "^1.7.2"
   }
 }
