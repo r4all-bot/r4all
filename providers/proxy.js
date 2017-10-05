@@ -52,11 +52,13 @@ var proxyTester = function(url, validation, proxy) {
 };
 
 var fetchProxy = function(url, validation, i) {
+    var stop;
     var sources = ProxyLists.listSources();
 
     if (!sources[i]) i = 0;
-    if (!sources[i] || i == this.index) return Promise.resolve(null);
+    if (!sources[i]) return Promise.resolve(null);
     if (sources[i].requiredOptions.apiKey) return _.bind(fetchProxy, this)(url, validation, ++i);
+    if (i == this.index) stop = true;
 
     debug('fetching proxy from [' + i + '] ' + sources[i].name + '...');
 
@@ -77,7 +79,12 @@ var fetchProxy = function(url, validation, i) {
             return proxy;
         })
         .catch(function(err) {
-            return _.bind(fetchProxy, _this)(url, validation, ++i);
+            if (stop) {
+                debug('unable to fetch a working proxy');
+                return null;
+            } else {
+                return _.bind(fetchProxy, _this)(url, validation, ++i);
+            }
         });
 };
 

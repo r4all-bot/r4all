@@ -23,6 +23,7 @@ var req = function(url, options) {
         options = options || {};
 
         options.url = url;
+        options.timeout = options.timeout || 15 * 1000;
 
         var r = request(options);
 
@@ -186,15 +187,15 @@ var common = module.exports = {
 
         // },
 
-        // titleEncode: function(title) {
-        //     return latenize(title) // replace accented characters with non accented
-        //         .replace(/&/g, 'and') // replace & for and
-        //         .replace(/\+/g, 'plus') // replace + for plus
-        //         .replace(/ |:|-|!|,|\//g, '.') // replace some special characters with dot
-        //         .replace(/\.+/g, '.') // replace multiple dots with single dot
-        //         .replace(/[^\w-.()]+/g, '') // remove not allowed characters - ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._()
-        //         .replace(/^\./, '') // remove initial dot from string
-        //         .replace(/\.$/, ''); // remove final dot from string
-        // }
+        titleEncode: function(title) {
+            return latenize(title) // replace accented characters with non accented
+                .replace(/&/g, 'and') // replace & for and
+                .replace(/\+/g, 'plus') // replace + for plus
+                .replace(/ |:|-|!|,|\//g, '.') // replace some special characters with dot
+                .replace(/[^\w-.()]+/g, '') // remove not allowed characters - ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._()
+                .replace(/\.+/g, '.') // replace multiple dots with single dot
+                .replace(/^\./, '') // remove initial dot from string
+                .replace(/\.$/, ''); // remove final dot from string
+        }
     }
 };

@@ -127,17 +127,19 @@ var verifyMovie = function(release) {
                 isVerified: validated
             };
 
-            if (validated) {
-                return db.upsertIMDb(imdbInfo)
-                    .then(function() {
-                        return db.upsertRelease(r);
-                    });
-            } else {
-                return db.upsertRelease(r);
+            if (release.imdb._id == null || release.pubdate < release.imdb.pubdate) {
+                imdbInfo.pubdate = release.pubdate;
             }
+
+            return db.upsertIMDb(imdbInfo)
+                .then(function() {
+                    return db.upsertRelease(r);
+                });
         });
 };
 
+
+//*********************aqui
 var verifyShow = function(release) {
     var _this = this;
 
@@ -303,7 +305,7 @@ Core.prototype.refresh = function() {
         // })
 
 
-        
+
         // .then(_.bind(fetchShowList, this))
         // .then(_.partial(db.getJobs, fetchAllJobs))
         // .each(function (release) {
@@ -311,6 +313,8 @@ Core.prototype.refresh = function() {
         // })
         // .then(refreshIMDbOutdated)
         .then(function() {
+            _this.clearIMDbInfo();
+
             _this.refreshes++;
             _this.lastRefresh = moment();
 
