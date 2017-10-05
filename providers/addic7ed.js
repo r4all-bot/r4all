@@ -8,7 +8,8 @@ var common = require('../common.js');
 
 var COMPATIBILITY = {
     DIMENSION: 'LOL|SYS',
-    IMMERSE: 'XII|ASAP'
+    IMMERSE: 'XII|ASAP',
+    AVS: 'SVA'
 };
 
 var Addic7ed = function () {
