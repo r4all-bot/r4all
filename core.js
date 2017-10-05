@@ -26,7 +26,6 @@ var Core = function() {
     var timer;
 
     // data
-    // var showList;
     var imdbList = {};
 
     this.setTimer = function() {
@@ -37,23 +36,11 @@ var Core = function() {
         clearTimeout(timer);
     };
 
-    // this.setShowList = function (shows) {
-    //     showList = {};
+    this.clearIMDbInfo = function(imdbInfo) {
+        imdbList = {};
+    };
 
-    //     _.each(shows, function (s) {
-    //         showList[s._id] = s;
-    //     });
-    // };
-
-    // this.addShow = function (show) {
-    //     showList[show._id] = show;
-    // };
-
-    // this.getShow = function (_id) {
-    //     return showList[_id];
-    // };
-
-    this.addIMDbList = function(imdbInfo) {
+    this.addIMDbInfo = function(imdbInfo) {
         imdbList[imdbInfo._id] = imdbInfo;
     };
 
@@ -80,7 +67,7 @@ var fetchReleases = function() {
         })
         .then(function(success) {
             if (!success || _.isEmpty(rarbg.newReleases)) {
-                return;
+                return [];
             }
 
             return _.values(rarbg.newReleases);
@@ -109,7 +96,7 @@ var verifyMovie = function(release) {
 
             var validated = false;
 
-            _this.addIMDbList(imdbInfo);
+            _this.addIMDbInfo(imdbInfo);
 
             // Movie Title check
             var releaseTitle = release.parsed.releaseTitle.replace(/-/g, '.').toUpperCase(); // fix: replace allowed character '-' with dot - some releases replace with dot
@@ -226,21 +213,21 @@ var verifyShow = function(release) {
 // **************************************************
 // jobHandler
 // **************************************************
-var jobHandler = function(release) {
-    if (release.isVerified) {
-        return fetchSubtitle(release)
-            .then(function(subtitleId) {
-                var r = {
-                    _id: release._id,
-                    subtitleId: subtitleId
-                };
+// var jobHandler = function(release) {
+//     if (release.isVerified) {
+//         return fetchSubtitle(release)
+//             .then(function(subtitleId) {
+//                 var r = {
+//                     _id: release._id,
+//                     subtitleId: subtitleId
+//                 };
 
-                return subtitleId && db.upsertRelease(r);
-            });
-    } else {
+//                 return subtitleId && db.upsertRelease(r);
+//             });
+//     } else {
 
-    }
-};
+//     }
+// };
 
 // **************************************************
 // fetch movie/show info & validate
@@ -260,13 +247,13 @@ var jobHandler = function(release) {
 //         });
 // };
 
-this.fetchSubtitle = function(release) {
-    if (release.category.type == 'movie') {
-        return providers.legendasdivx.fetch(release.name, release.imdbId);
-    } else {
-        return release.addic7edId && providers.addic7ed.fetch(release.addic7edId, release.parsed);
-    }
-};
+// this.fetchSubtitle = function(release) {
+//     if (release.category.type == 'movie') {
+//         return providers.legendasdivx.fetch(release.name, release.imdbId);
+//     } else {
+//         return release.addic7edId && providers.addic7ed.fetch(release.addic7edId, release.parsed);
+//     }
+// };
 
 // **************************************************
 // database maintenance
@@ -302,18 +289,21 @@ Core.prototype.refresh = function() {
 
     return _.bind(fetchReleases, this)()
         .map(function(release) {
-            release.parsed = common.scene.parseRelease(release.name, release.category);
+            // release.parsed = common.scene.parseRelease(release);
 
-            if (!release.imdb || !release.parsed) {
-                release.isVerified = false;
-            }
+            // if (!release.imdb || !release.parsed) {
+            //     release.isVerified = false;
+            // }
 
             return db.upsertRelease(release);
         })
-        .then(db.getUnverifiedReleases)
-        .each(function(release) {
-            return _.bind(verifyRelease, _this)(release);
-        })
+        // .then(db.getReleasesToVerify)
+        // .each(function(release) {
+        //     return _.bind(verifyRelease, _this)(release);
+        // })
+
+
+        
         // .then(_.bind(fetchShowList, this))
         // .then(_.partial(db.getJobs, fetchAllJobs))
         // .each(function (release) {

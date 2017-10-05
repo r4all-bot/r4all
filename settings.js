@@ -8,7 +8,7 @@ module.exports = {
     appPageRecords: 50,
 
     // core - refesh time interval
-    refreshInterval: 15 * 60 * 1000,
+    refreshInterval: 5 * 60 * 1000,
 
     // request attempts
     attemptsInterval: 5 * 1000 // time interval between each retry

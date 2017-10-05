@@ -65,18 +65,20 @@ var common = module.exports = {
 
         return new Promise(function(resolve, reject) {
             (function retry(attempt) {
+                attempt = attempt || 0;
+
                 return req(url, options)
                     .then(resolve)
                     .catch(function(err) {
-                        if (attempt > 0) {
+                        if (attempt < retryAttempts) {
                             setTimeout(function() {
-                                return retry(--attempt);
+                                return retry(++attempt);
                             }, settings.attemptsInterval);
                         } else {
                             return reject(err);
                         }
                     });
-            })(--retryAttempts);
+            })();
         });
     },
 
@@ -90,7 +92,7 @@ var common = module.exports = {
         }
     },
 
-    rem: function(regex, str) { // regular expression match
+    regex: function(regex, str) { // regular expression match
         try {
             var match = str.match(regex);
             match.shift(); // remove original string that was parsed
@@ -104,174 +106,95 @@ var common = module.exports = {
         }
     },
 
-    getCategory: function(name, categoryId) {
+    getCategory: function(releaseName, categoryId) {
         var type = (categoryId = 41 ? 'show' : 'movie');
-        var quality = (name.indexOf('1080p') != -1 ? '1080p' : '720p');
+        var quality = (releaseName.indexOf('1080p') != -1 ? '1080p' : '720p');
 
         return { type: type, quality: quality };
     },
 
-    resizeImage: function(imageUrl, providers, size) {
-        if (!imageUrl) return imageUrl;
+    // resizeImage: function(imageUrl, providers, size) {
+    //     if (!imageUrl) return imageUrl;
 
-        var uri = URI(imageUrl);
+    //     var uri = URI(imageUrl);
 
-        switch (uri.domain()) {
-            case 'media-imdb.com':
-                return providers.imdb.resizeImage(imageUrl, size);
-            case 'image.tmdb.org':
-                return providers.themoviedb.resizeImage(imageUrl, size);
-            default:
-                return imageUrl;
-        }
-    },
+    //     switch (uri.domain()) {
+    //         case 'media-imdb.com':
+    //             return providers.imdb.resizeImage(imageUrl, size);
+    //         case 'image.tmdb.org':
+    //             return providers.themoviedb.resizeImage(imageUrl, size);
+    //         default:
+    //             return imageUrl;
+    //     }
+    // },
 
-    getInfohash: function(magnetLink) {
-        var infohash = magnetLink && this.rem(/magnet:\?xt=urn:btih:(\w+?)&/, magnetLink);
-        return infohash && infohash.toUpperCase();
-    },
+    // getInfohash: function(magnetLink) {
+    //     var infohash = magnetLink && this.rem(/magnet:\?xt=urn:btih:(\w+?)&/, magnetLink);
+    //     return infohash && infohash.toUpperCase();
+    // },
 
     scene: {
-        tags: [
-            'LIMITED',
-            'DC',
-            'DUBBED',
-            'PROPER',
-            'UNRATED',
-            'REPACK',
-            'DOCU',
-            'READNFO.PROPER',
-            'SUBBED',
-            'EXTENDED',
-            'UNRATED.DC',
-            'MIND.BENDING.EDITION',
-            'REAL.PROPER',
-            'RERIP',
-            'READ.NFO',
-            'LIMITED.INTERNAL',
-            'DIRECTORS.CUT',
-            'THEATRICAL.CUT',
-            'THEATRICAL.VERSION',
-            'DIRFIX',
-            'PROPER.LIMITED',
-            'EXTRAS',
-            'SPECIAL.EDITION',
-            'REAL',
-            'UNRATED.EXTENDED',
-            'LIMITED.UNRATED',
-            'REMASTERED',
-            'REAL.READ.NFO',
-            'PROPER.UNRATED',
-            'EXTENDED.CUT',
-            'UNCUT.PROPER',
-            'LIMITED.RERIP',
-            'CANTONESE',
-            'LIMITED.DOCU',
-            'INTERNAL.RERIP',
-            'EXTENDED.ACTION.CUT',
-            'ORGINAL.CUT',
-            'PART.1.EXTENDED',
-            'PART.2.EXTENDED',
-            'LIMITED.PROPER',
-            'WS',
-            'EXTENDED.RERIP',
-            '30TH.ANNIVERSARY.EDITION',
-            '50TH.ANNIVERSARY.SPECIAL',
-            'INTERNAL',
-            'REMASTERED.DC',
-            'INT',
-            'THEATRICAL',
-            'DUBBED.LIMITED',
-            'INTERNAL.REMASTERED',
-            'EXTENDED.REMASTERED',
-            'RERIP.LIMITED',
-            'EXTENDED.REPACK',
-            'READNFO.LIMITED',
-            'UNCUT',
-            'UNCUT.RERiP',
-            'LIMITED.EXTENDED',
-            'EXTENDED.LIMITED',
-            'Limited.REPACK',
-            'ALTERNATE.UNRATED',
-            'REPACK.LIMITED',
-            'REAL.REPACK'
-        ],
+        tags: [],
 
-        typeMatch: {
-            m720p: '720p\\.BluRay',
-            m1080p: '1080p\\.BluRay',
-            s720p: '720p(?:\\.|_)(?:HDTV|WEBRip)'
-        },
+        // parseRelease: function(release) {
+        //     var releaseName = release.name;
+        //     var parsed = null;
 
-        getReleaseName: function(postTitle, category) {
-            var regex = new RegExp(this.typeMatch[category], 'i');
-            var releaseName = null;
+        //     var toMatch = this.typeMatch[category];
+        //     var regex, result;
 
-            postTitle.split('&').some(function(r) {
-                if (common.rem(regex, r) !== null) {
-                    releaseName = r.trim();
-                    return true;
-                }
+        //     if (category.charAt(0) == 'm')
+        //         regex = new RegExp('([\\w-.()]+?)(?:\\.(\\d{4}))?(?:\.(' + this.tags.join('|') + '))?\\.' + toMatch + '\\.x264-([\\w]+)', 'i');
+        //     else
+        //         regex = new RegExp('([\\w-.()]+?)\\.S?(\\d{1,2})((?:(?:\\.|-)?(?:E|x)\\d{1,2})+)([\\w-.()]*?)\\.' + toMatch + '(?:\\.|_)x264-([\\w]+)', 'i');
 
-                return false;
-            });
+        //     result = common.rem(regex, releaseName);
 
-            return releaseName;
-        },
+        //     if (result) {
+        //         parsed = {};
 
-        parseRelease: function(postTitle, category) {
-            var releaseName = this.getReleaseName(postTitle, category);
-            var parsed = null;
+        //         if (category.charAt(0) == 'm') {
+        //             parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
+        //             parsed.year = result[1] && parseInt(result[1]); // year
+        //             parsed.tag = result[2];
+        //             parsed.group = result[3];
+        //         } else {
+        //             result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
+        //                 return parseInt(ep, 10);
+        //             });
 
-            if (releaseName) {
-                var toMatch = this.typeMatch[category];
-                var regex, result;
+        //             parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
+        //             parsed.season = parseInt(result[1], 10); // season
+        //             parsed.episodes = [];
+        //             parsed.tag = result[3];
+        //             parsed.group = result[4];
 
-                if (category.charAt(0) == 'm')
-                    regex = new RegExp('([\\w-.()]+?)(?:\\.(\\d{4}))?(?:\.(' + this.tags.join('|') + '))?\\.' + toMatch + '\\.x264-([\\w]+)', 'i');
-                else
-                    regex = new RegExp('([\\w-.()]+?)\\.S?(\\d{1,2})((?:(?:\\.|-)?(?:E|x)\\d{1,2})+)([\\w-.()]*?)\\.' + toMatch + '(?:\\.|_)x264-([\\w]+)', 'i');
+        //             for (var i = result[2][0]; i <= result[2][result[2].length - 1]; i++) { // fill in all episodes
+        //                 parsed.episodes.push(i);
+        //             }
+        //         }
+        //     }
 
-                result = common.rem(regex, releaseName);
+        //     return parsed;
+        // },
 
-                if (result) {
-                    parsed = {};
+        // parseMovieRelease: function() {
 
-                    if (category.charAt(0) == 'm') {
-                        parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
-                        parsed.year = result[1] && parseInt(result[1]); // year
-                        parsed.tag = result[2];
-                        parsed.group = result[3];
-                    } else {
-                        result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
-                            return parseInt(ep, 10);
-                        });
+        // },
 
-                        parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
-                        parsed.season = parseInt(result[1], 10); // season
-                        parsed.episodes = [];
-                        parsed.tag = result[3];
-                        parsed.group = result[4];
+        // parseShowRelease: function() {
 
-                        for (var i = result[2][0]; i <= result[2][result[2].length - 1]; i++) { // fill in all episodes
-                            parsed.episodes.push(i);
-                        }
-                    }
-                }
-            }
+        // },
 
-            return parsed;
-        },
-
-        titleEncode: function(title) {
-            return latenize(title) // replace accented characters with non accented
-                .replace(/&/g, 'and') // replace & for and
-                .replace(/\+/g, 'plus') // replace + for plus
-                .replace(/ |:|-|!|,|\//g, '.') // replace some special characters with dot
-                .replace(/\.+/g, '.') // replace multiple dots with single dot
-                .replace(/[^\w-.()]+/g, '') // remove not allowed characters - ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._()
-                .replace(/^\./, '') // remove initial dot from string
-                .replace(/\.$/, ''); // remove final dot from string
-        }
+        // titleEncode: function(title) {
+        //     return latenize(title) // replace accented characters with non accented
+        //         .replace(/&/g, 'and') // replace & for and
+        //         .replace(/\+/g, 'plus') // replace + for plus
+        //         .replace(/ |:|-|!|,|\//g, '.') // replace some special characters with dot
+        //         .replace(/\.+/g, '.') // replace multiple dots with single dot
+        //         .replace(/[^\w-.()]+/g, '') // remove not allowed characters - ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._()
+        //         .replace(/^\./, '') // remove initial dot from string
+        //         .replace(/\.$/, ''); // remove final dot from string
+        // }
     }
 };

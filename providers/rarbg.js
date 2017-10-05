@@ -41,9 +41,9 @@ var getReleases = function(html, page) {
         var column3 = $(this).find('.lista').eq(2);
 
         var release = {
-            category: parseInt(common.rem(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
+            category: parseInt(common.regex(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
             name: common.unleak($(column2).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
-            imdbId: common.rem(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href')),
+            imdbId: common.regex(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href')),
             pubdate: common.unleak($(column3).text())
         };
 
@@ -88,7 +88,7 @@ var getReleasesFromPage = function(page, attempt) {
     attempt = attempt || 1;
 
     url = url.replace('{page}', page);
-if(page == 4) return;
+    
     var _this = this;
 
     return Promise.resolve(this.proxy || proxy.fetch(url, { type: 'html', element: '.lista2t' }))
