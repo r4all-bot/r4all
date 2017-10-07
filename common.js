@@ -1,7 +1,17 @@
 'use strict';
 
 var Promise = require('bluebird');
-var request = require('request');
+var request = require('request').defaults({
+    method: 'GET',
+    headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate'
+    },
+    timeout: 30 * 1000,
+    jar: true
+});
 var zlib = require('zlib');
 var URI = require('urijs');
 var latenize = require('latenize');
@@ -9,24 +19,17 @@ var latenize = require('latenize');
 var settings = require('./settings.js');
 
 var common = module.exports = {
-    req: function (url, referer) {
+    req: function (url, referer, options) {
         return new Promise(function (resolve, reject) {
-            referer = referer || url; // check if referer is set
+            options = options || {};
 
-            var options = {
-                url: url,
-                headers: {
-                    'accept-charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-                    'accept-language': 'en-US,en;q=0.8',
-                    'accept-encoding': 'gzip,deflate',
-                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.143 Safari/537.36',
-                    // 'x-forwarded-for': '199.254.254.254', // disable IMDb automatic geo-location
+            options.url = url;
+
+            if(referer) {
+                options.headers = {
                     'referer': referer
-                },
-                timeout: 120000,
-                // rejectUnauthorized: false // legendasdivx - unable to verify the first certificate
-            };
+                };
+            }
 
             var req = request.get(options);
 
