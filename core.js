@@ -597,28 +597,28 @@ Core.prototype.refresh = function () {
 
     return db.setSettings()
         .then(_.partial(_.bind(fetchReleases, this), 'ddlvalley'))
-        // .then(_.bind(fetchShowList, _this))
-        // .then(_.partial(db.getJobs, fetchAllJobs))
-        // .each(function (release) {
-        //     return _.bind(jobHandler, _this)(release);
-        // })
-        // .then(refreshIMDbOutdated)
-        // .then(function () {
-        //     _this.refreshes++;
-        //     _this.lastRefresh = moment();
+        .then(_.bind(fetchShowList, _this))
+        .then(_.partial(db.getJobs, fetchAllJobs))
+        .each(function (release) {
+            return _.bind(jobHandler, _this)(release);
+        })
+        .then(refreshIMDbOutdated)
+        .then(function () {
+            _this.refreshes++;
+            _this.lastRefresh = moment();
 
-        //     // refresh lastFetchAllJobs
-        //     if (fetchAllJobs) {
-        //         _this.lastFetchAllJobs = moment().hours(0).minutes(0).seconds(0);
-        //     }
+            // refresh lastFetchAllJobs
+            if (fetchAllJobs) {
+                _this.lastFetchAllJobs = moment().hours(0).minutes(0).seconds(0);
+            }
 
-        //     _this.setTimer();
-        //     _this.isBusy = false;
+            _this.setTimer();
+            _this.isBusy = false;
 
-        //     debug('refresh done!');
+            debug('refresh done!');
 
-        //     return;
-        // })
+            return;
+        })
         .catch(function (err) {
             log.error('core.refresh(): ', err);
 
