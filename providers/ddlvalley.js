@@ -117,8 +117,6 @@ var fetchSiteReleases = function(category, page, attempt) {
 
     return Promise.resolve((this.proxy && { proxy: this.proxy }) || proxy.fetch(url, { type: 'html', element: '.post' }))
         .then(function(result) {
-            if (!result) throw 'proxy not set';
-
             if (_this.proxy != result.proxy) {
                 _this.proxy = result.proxy;
                 debug('using new proxy: ' + _this.proxy);
@@ -137,6 +135,9 @@ var fetchSiteReleases = function(category, page, attempt) {
             _this.proxy = null;
 
             return _.bind(fetchSiteReleases, _this)(category, page, ++attempt);
+        })
+        .then(function(done) {
+            return done || _.bind(fetchSiteReleases, _this)(category, ++page);
         });
 };
 
@@ -171,7 +172,7 @@ var fetchSiteReleasesInfo = function(html, category, page) {
         done = true;
     }
 
-    return done || _.bind(fetchSiteReleases, this)(category, ++page);
+    return done;
 };
 
 var fetchPostInfo = function(html, category, postTitle, pendingPostDate) {
@@ -237,8 +238,6 @@ var fetchPost = function(release, category, attempt) {
 
     return Promise.resolve((this.proxy && { proxy: this.proxy }) || proxy.fetch(url, { type: 'html', element: '#core' }))
         .then(function(result) {
-            if (!result) throw 'proxy not set';
-
             if (_this.proxy != result.proxy) {
                 _this.proxy = result.proxy;
                 debug('using new proxy: ' + _this.proxy);
@@ -260,10 +259,35 @@ var fetchPost = function(release, category, attempt) {
         });
 };
 
-DDLValley.prototype.fetch = function(category, attempt) {
-    var url = this.URL;
-
+DDLValley.prototype.fetchFeed = function(url, category, attempt) {
     attempt = attempt || 1;
+
+    var _this = this;
+
+    return Promise.resolve((this.proxy && { proxy: this.proxy }) || proxy.fetch(url, { type: 'xml', element: 'item' }))
+        .then(function(result) {
+            if (_this.proxy != result.proxy) {
+                _this.proxy = result.proxy;
+                debug('using new proxy: ' + _this.proxy);
+            }
+
+            debug(url);
+
+            return (result.resp || common.req(url, null, { proxy: _this.proxy }));
+        })
+        .then(function(xml) {
+            return _.bind(fetchFeedReleasesInfo, _this)(xml, category);
+        })
+        .catch(function(err) {
+            if (attempt >= 2) throw err;
+            _this.proxy = null;
+
+            return _.bind(_this.fetchFeed, _this)(url, category, ++attempt);
+        });
+};
+
+DDLValley.prototype.fetch = function(category) {
+    var url = this.URL;
 
     // feed url
     if (category == 'm720p')
@@ -279,29 +303,8 @@ DDLValley.prototype.fetch = function(category, attempt) {
 
     var _this = this;
 
-    return Promise.resolve((this.proxy && { proxy: this.proxy }) || proxy.fetch(url, { type: 'xml', element: 'item' }))
-        .then(function(result) {
-            if (!result) throw 'proxy not set';
-
-            if (_this.proxy != result.proxy) {
-                _this.proxy = result.proxy;
-                debug('using new proxy: ' + _this.proxy);
-            }
-
-            debug(url);
-
-            return (result.resp || common.req(url, null, { proxy: _this.proxy }));
-        })
-        .catch(function(err) {
-            if (attempt > 5) throw err;
-
-            _this.proxy = null;
-
-            return _.bind(_this.fetch, _this)(category, ++attempt);
-        })
-        .then(function(xml) {
-            var done = _.bind(fetchFeedReleasesInfo, _this)(xml, category);
-
+    return _.bind(_this.fetchFeed, _this)(url, category)
+        .then(function(done) {
             return done || _.bind(fetchSiteReleases, _this)(category);
         })
         .thenReturn(_this.pending)

@@ -43,7 +43,7 @@ var proxyTester = function(url, validation, proxy) {
 
                 // validate the page
                 if (!$(validation.element).length) throw 'site validation failed';
-            } else if(validation.type == 'xml') {
+            } else if (validation.type == 'xml') {
                 var $ = cheerio.load(resp, {
                     normalizeWhitespace: true,
                     xmlMode: true,
@@ -67,7 +67,7 @@ var fetchProxy = function(url, validation, i) {
     });
 
     if (!sources[i]) i = 0;
-    if (!sources[i]) return Promise.resolve(null);
+    if (!sources[i]) throw 'proxy sources are empty';
     if (i == this.index) stop = true;
 
     debug('fetching proxy from [' + i + '] ' + sources[i].name + '...');
@@ -84,17 +84,17 @@ var fetchProxy = function(url, validation, i) {
             });
         })
         .any()
-        .then(function(result) {
-            _this.index = i;
-            return result;
-        })
         .catch(function(err) {
             if (stop) {
                 debug('unable to fetch a working proxy');
-                return null;
-            } else {
-                return _.bind(fetchProxy, _this)(url, validation, ++i);
+                throw 'unable to fetch a working proxy';
             }
+
+            return _.bind(fetchProxy, _this)(url, validation, ++i);
+        })
+        .then(function(result) {
+            _this.index = i;
+            return result;
         });
 };
 
