@@ -10,7 +10,6 @@ var request = require('request').defaults({
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate'
     },
-    timeout: 30 * 1000,
     jar: true
 });
 var _ = require('lodash');
@@ -19,49 +18,50 @@ var latenize = require('latenize');
 
 var settings = require('./settings.js');
 
-Promise.config({
-    cancellation: true
-});
-
 var req = function(url, options) {
+    options = options || {};
+
+    options.url = url;
+
+    var r = request(options);
+
     return new Promise(function(resolve, reject) {
-        options = options || {};
+            r.on('response', function(res) {
+                var chunks = [];
 
-        options.url = url;
+                res.on('data', function(chunk) {
+                    chunks.push(chunk);
+                });
 
-        var r = request(options);
+                res.on('end', function() {
+                    var buffer = Buffer.concat(chunks);
+                    var encoding = res.headers['content-encoding'];
 
-        r.on('response', function(res) {
-            var chunks = [];
-
-            res.on('data', function(chunk) {
-                chunks.push(chunk);
+                    if (encoding == 'gzip') {
+                        zlib.gunzip(buffer, function(err, decoded) {
+                            if (err) reject(err);
+                            else resolve(decoded && decoded.toString());
+                        });
+                    } else if (encoding == 'deflate') {
+                        zlib.inflate(buffer, function(err, decoded) {
+                            if (err) reject(err);
+                            else resolve(decoded && decoded.toString());
+                        });
+                    } else {
+                        resolve(buffer.toString());
+                    }
+                });
             });
 
-            res.on('end', function() {
-                var buffer = Buffer.concat(chunks);
-                var encoding = res.headers['content-encoding'];
-
-                if (encoding == 'gzip') {
-                    zlib.gunzip(buffer, function(err, decoded) {
-                        if (err) reject(err);
-                        else resolve(decoded && decoded.toString());
-                    });
-                } else if (encoding == 'deflate') {
-                    zlib.inflate(buffer, function(err, decoded) {
-                        if (err) reject(err);
-                        else resolve(decoded && decoded.toString());
-                    });
-                } else {
-                    resolve(buffer.toString());
-                }
+            r.on('error', function(err) {
+                reject(err);
             });
+        })
+        .timeout(settings.requestTimeout)
+        .catch(Promise.TimeoutError, function(e) {
+            r.abort();
+            throw e;
         });
-
-        r.on('error', function(err) {
-            reject(err);
-        });
-    }).timeout(30 * 1000);
 };
 
 var common = module.exports = {

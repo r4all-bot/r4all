@@ -35,7 +35,7 @@ var fetchProxyListFromSource = function(source) {
 };
 
 var proxyTester = function(url, validation, proxy) {
-    return common.request(url, { proxy: proxy, json: (validation.type == 'json') })
+    return common.request(url, { proxy: proxy, tunnel: false, json: (validation.type == 'json') })
         .then(function(resp) {
             if (validation.type == 'html') {
                 var $ = cheerio.load(resp);
@@ -65,8 +65,8 @@ var fetchProxy = function(url, validation, i) {
         .then(function(proxiesList) {
             if (!proxiesList.length) throw 'proxy list is empty';
 
-            return _.map(_.uniqBy(proxiesList, function(p) { return 'http://' + p.ipAddress + ':' + p.port; }), function(p) {
-                var proxy = 'http://' + p.ipAddress + ':' + p.port;
+            return _.map(_.uniqBy(proxiesList, function(p) { return p.protocols[0] + '://' + p.ipAddress + ':' + p.port; }), function(p) {
+                var proxy = p.protocols[0] + '://' + p.ipAddress + ':' + p.port;
                 return proxyTester(url, validation, proxy);
             });
         })

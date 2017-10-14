@@ -102,7 +102,7 @@ var getReleasesFromPage = function(page, attempt) {
 
             debug(url);
 
-            return (result.resp || common.request(url, { proxy: _this.proxy }));
+            return (result.resp || common.request(url, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(html) {
             return _.bind(getReleases, _this)(html, page);

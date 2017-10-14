@@ -71,50 +71,50 @@ function memoryUsage() {
         .then(setTimeout(memoryUsage, 15 * 60 * 1000));
 };
 
-// (function initApp() {
-//     app.locals.db.initialize()
-//         .then(memoryUsage)
-//         .then(function() {
-//             return http.createServer(app).listen(app.get('port'), app.get('ip'), function() {
-//                 debug('Express server listening on port ' + app.get('port'));
-
-//                 return app.locals.core.refresh();
-//             });
-//         })
-//         .catch(function(err) {
-//             console.log(err);
-//         });
-// })();
-
-
-return app.locals.db.initialize()
+(function initApp() {
+    app.locals.db.initialize()
+        .then(memoryUsage)
         .then(function() {
-            return app.locals.core.refresh();
+            return http.createServer(app).listen(app.get('port'), app.get('ip'), function() {
+                debug('Express server listening on port ' + app.get('port'));
+
+                return app.locals.core.refresh();
+            });
         })
-        // .then(function() {
-        //     var fs = require('fs');
-        //     var releases = fs.readFileSync('releases.json', 'utf8');
-        //     releases = JSON.parse(releases);
-        //     console.log(releases.length);
-        //     return releases;
-        // })
-        // .map(function(release) {
-        //     // release.parsed = common.scene.parseRelease(release);
+        .catch(function(err) {
+            console.log(err);
+        });
+})();
 
-        //     // if (release.category.type = 'show' && release.parsed) {
-        //     //     release.season = release.parsed.season;
-        //     //     release.episode = release.parsed.episode;
-        //     // }
 
-        //     // if (!release.imdb || !release.parsed) {
-        //     //     release.isVerified = false;
-        //     // }
+// return app.locals.db.initialize()
+//         .then(function() {
+//             return app.locals.core.refresh();
+//         })
+// .then(function() {
+//     var fs = require('fs');
+//     var releases = fs.readFileSync('releases.json', 'utf8');
+//     releases = JSON.parse(releases);
+//     console.log(releases.length);
+//     return releases;
+// })
+// .map(function(release) {
+//     // release.parsed = common.scene.parseRelease(release);
 
-        //     return app.locals.db.upsertRelease(release);
-        // })
-        // .then(function() {
-        //     console.log('done!!!');
-        // });
+//     // if (release.category.type = 'show' && release.parsed) {
+//     //     release.season = release.parsed.season;
+//     //     release.episode = release.parsed.episode;
+//     // }
+
+//     // if (!release.imdb || !release.parsed) {
+//     //     release.isVerified = false;
+//     // }
+
+//     return app.locals.db.upsertRelease(release);
+// })
+// .then(function() {
+//     console.log('done!!!');
+// });
 
 
 
