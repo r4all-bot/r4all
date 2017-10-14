@@ -9,7 +9,6 @@ var request = require('request').defaults({
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate'
     },
-    timeout: 30 * 1000,
     jar: true
 });
 var zlib = require('zlib');
@@ -19,61 +18,66 @@ var latenize = require('latenize');
 var settings = require('./settings.js');
 
 var common = module.exports = {
-    req: function (url, referer, options) {
-        return new Promise(function (resolve, reject) {
-            options = options || {};
+    req: function(url, referer, options) {
+        options = options || {};
 
-            options.url = url;
+        options.url = url;
 
-            if(referer) {
-                options.headers = {
-                    'referer': referer
-                };
-            }
+        if (referer) {
+            options.headers = {
+                'referer': referer
+            };
+        }
 
-            var req = request.get(options);
+        var req = request(options);
 
-            req.on('response', function (res) {
-                var chunks = [];
+        return new Promise(function(resolve, reject) {
+                req.on('response', function(res) {
+                    var chunks = [];
 
-                res.on('data', function (chunk) {
-                    chunks.push(chunk);
+                    res.on('data', function(chunk) {
+                        chunks.push(chunk);
+                    });
+
+                    res.on('end', function() {
+                        var buffer = Buffer.concat(chunks);
+                        var encoding = res.headers['content-encoding'];
+
+                        if (encoding == 'gzip') {
+                            zlib.gunzip(buffer, function(err, decoded) {
+                                if (err) reject(err);
+                                else resolve(decoded && decoded.toString());
+                            });
+                        } else if (encoding == 'deflate') {
+                            zlib.inflate(buffer, function(err, decoded) {
+                                if (err) reject(err);
+                                else resolve(decoded && decoded.toString());
+                            });
+                        } else {
+                            resolve(buffer.toString());
+                        }
+                    });
                 });
 
-                res.on('end', function () {
-                    var buffer = Buffer.concat(chunks);
-                    var encoding = res.headers['content-encoding'];
-
-                    if (encoding == 'gzip') {
-                        zlib.gunzip(buffer, function (err, decoded) {
-                            if (err) reject(err);
-                            else resolve(decoded && decoded.toString());
-                        });
-                    } else if (encoding == 'deflate') {
-                        zlib.inflate(buffer, function (err, decoded) {
-                            if (err) reject(err);
-                            else resolve(decoded && decoded.toString());
-                        });
-                    } else {
-                        resolve(buffer.toString());
-                    }
+                req.on('error', function(err) {
+                    reject(err);
                 });
+            })
+            .timeout(30 * 1000)
+            .catch(Promise.TimeoutError, function(e) {
+                req.abort();
+                throw e;
             });
-
-            req.on('error', function (err) {
-                reject(err);
-            });
-        });
     },
 
-    retry: function (url, referer) {
-        return new Promise(function (resolve, reject) {
+    retry: function(url, referer) {
+        return new Promise(function(resolve, reject) {
             (function retry(attempt) {
                 return common.req(url, referer)
                     .then(resolve)
-                    .catch(function (err) {
+                    .catch(function(err) {
                         if (attempt > 0) {
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 return retry(--attempt);
                             }, settings.attemptsInterval);
                         } else {
@@ -84,7 +88,7 @@ var common = module.exports = {
         });
     },
 
-    unleak: function (str) { // cheerio+v8 "leaks" memory from original HTML
+    unleak: function(str) { // cheerio+v8 "leaks" memory from original HTML
         if (typeof str === 'string') {
             return (' ' + str).substr(1);
         } else if (str === '[object Array]') {
@@ -94,7 +98,7 @@ var common = module.exports = {
         }
     },
 
-    rem: function (regex, str) { // regular expression match
+    rem: function(regex, str) { // regular expression match
         try {
             var match = str.match(regex);
             match.shift(); // remove original string that was parsed
@@ -108,7 +112,7 @@ var common = module.exports = {
         }
     },
 
-    resizeImage: function (imageUrl, providers, size) {
+    resizeImage: function(imageUrl, providers, size) {
         if (!imageUrl) return imageUrl;
 
         var uri = URI(imageUrl);
@@ -123,7 +127,7 @@ var common = module.exports = {
         }
     },
 
-    getInfohash: function (magnetLink) {
+    getInfohash: function(magnetLink) {
         var infohash = magnetLink && this.rem(/magnet:\?xt=urn:btih:(\w+?)&/, magnetLink);
         return infohash && infohash.toUpperCase();
     },
@@ -200,11 +204,11 @@ var common = module.exports = {
             s720p: '720p(?:\\.|_)(?:HDTV|WEBRip)'
         },
 
-        getReleaseName: function (postTitle, category) {
+        getReleaseName: function(postTitle, category) {
             var regex = new RegExp(this.typeMatch[category], 'i');
             var releaseName = null;
 
-            postTitle.split('&').some(function (r) {
+            postTitle.split('&').some(function(r) {
                 if (common.rem(regex, r) !== null) {
                     releaseName = r.trim();
                     return true;
@@ -216,7 +220,7 @@ var common = module.exports = {
             return releaseName;
         },
 
-        parseRelease: function (postTitle, category) {
+        parseRelease: function(postTitle, category) {
             var releaseName = this.getReleaseName(postTitle, category);
             var parsed = null;
 
@@ -240,7 +244,7 @@ var common = module.exports = {
                         parsed.tag = result[2];
                         parsed.group = result[3];
                     } else {
-                        result[2] = result[2].match(/\d{1,2}/gi).map(function (ep) { // episodes array generator
+                        result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
                             return parseInt(ep, 10);
                         });
 
@@ -260,7 +264,7 @@ var common = module.exports = {
             return parsed;
         },
 
-        titleEncode: function (title) {
+        titleEncode: function(title) {
             return latenize(title) // replace accented characters with non accented
                 .replace(/&/g, 'and') // replace & for and
                 .replace(/\+/g, 'plus') // replace + for plus

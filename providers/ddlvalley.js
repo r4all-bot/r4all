@@ -125,7 +125,7 @@ var fetchReleasesFromPage = function(category, page, attempt) {
 
             debug(url);
 
-            return (result.resp || common.req(url, null, { proxy: _this.proxy }));
+            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(html) {
             return _.bind(fetchSiteReleasesInfo, _this)(html, category, page);
@@ -256,7 +256,7 @@ var fetchPost = function(release, category, attempt) {
 
             debug(url);
 
-            return (result.resp || common.req(url, null, { proxy: _this.proxy }));
+            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(html) {
             return _.bind(fetchPostInfo, _this)(html, category, null, release.date); // pass release.date to keep datetime instead of only date
@@ -286,7 +286,7 @@ DDLValley.prototype.fetchFeed = function(url, category, attempt) {
 
             debug(url);
 
-            return (result.resp || common.req(url, null, { proxy: _this.proxy }));
+            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(xml) {
             return _.bind(fetchFeedReleasesInfo, _this)(xml, category);
