@@ -29,11 +29,11 @@ module.exports = {
     // get
     // **************************************************
     getLastRelease: function() {
-        return db.collection('releases').find().sort({ pubdate: -1 }).limit(1).nextAsync();
+        return db.collection('releases').find({}, { _id: 0, name: 1, pubdate: 1 }).sort({ pubdate: -1 }).limit(1).nextAsync();
     },
 
     getLastPage: function() {
-        return db.collection('releases').find().sort({ page: -1 }).limit(1).nextAsync();
+        return db.collection('releases').find({}, { _id: 0, page: 1 }).sort({ page: -1 }).limit(1).nextAsync();
     },
 
     getReleasesToVerify: function() {
