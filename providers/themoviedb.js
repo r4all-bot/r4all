@@ -7,7 +7,7 @@ var log = require('../logger.js');
 
 var MovieDB = Promise.promisifyAll(require('moviedb')('9e7a54d8b8d4ea33d0dee0032532670a'));
 
-var TMDb = function () {
+var TMDb = function() {
     this.URL = 'https://www.themoviedb.org';
     this.baseURL = null;
 
@@ -16,7 +16,7 @@ var TMDb = function () {
 };
 TMDb.prototype.constructor = TMDb;
 
-var fetchMedia = function (res, type, baseURL) {
+var fetchMedia = function(res, type, baseURL) {
     var media = {};
     var objLabel = (type == 'movie' ? 'movie_results' : 'tv_results');
 
@@ -29,7 +29,7 @@ var fetchMedia = function (res, type, baseURL) {
     return media;
 };
 
-TMDb.prototype.resizeImage = function (imageUrl, size) {
+TMDb.prototype.resizeImage = function(imageUrl, size) {
     var toSize;
 
     switch (size) {
@@ -46,24 +46,25 @@ TMDb.prototype.resizeImage = function (imageUrl, size) {
     return imageUrl.replace(/\/original\//i, toSize);
 };
 
-TMDb.prototype.fetch = function (imdbId, type) {
+TMDb.prototype.fetch = function(imdbId, type) {
     var _this = this;
 
     return Promise.resolve(this.baseURL || MovieDB.configurationAsync())
-        .then(function (res) {
-            if (Object.prototype.toString.call(res) !== '[object String]' && 'images' in res && 'secure_base_url' in res.images) {
-                _this.baseURL = res.images.secure_base_url;
+        .then(function(res) {
+            if (!_this.baseURL) {
+                if ('images' in res && 'secure_base_url' in res.images) {
+                    _this.baseURL = res.images.secure_base_url;
+                } else {
+                    throw 'Unable to fetch baseURL.';
+                }
             }
 
-            if (!_this.baseURL) {
-                throw 'Unable to fetch baseURL.';
-            }
             return MovieDB.findAsync({ id: imdbId, external_source: 'imdb_id' });
         })
-        .then(function (res) {
+        .then(function(res) {
             return fetchMedia(res, type, _this.baseURL);
         })
-        .then(function (media) {
+        .then(function(media) {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -71,7 +72,7 @@ TMDb.prototype.fetch = function (imdbId, type) {
 
             return media;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[TMDb] ', err);

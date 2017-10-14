@@ -29,7 +29,7 @@ var Core = function() {
     var imdbList = {};
 
     this.setTimer = function() {
-        timer = setTimeout(_.bind(this.refresh, this), settings.refreshInterval);
+        timer = setTimeout(_.bind(this.refresh, this), settings.coreRefreshInterval);
     };
 
     this.clearTimer = function() {
@@ -88,15 +88,13 @@ var verifyRelease = function(release) {
 var verifyMovie = function(release) {
     var _this = this;
 
-    return Promise.resolve(this.getIMDbInfo(release.imdbId) || providers.imdb.fetch(release.imdbId))
+    return Promise.resolve(this.getIMDbInfo(release.imdbId) || providers.imdb.fetch(release.imdbId, release.category.type))
         .then(function(imdbInfo) {
             if (!imdbInfo) {
                 return;
             }
 
             var validated = false;
-
-            _this.addIMDbInfo(imdbInfo);
 
             // Movie Title check
             var releaseTitle = release.parsed.releaseTitle.replace(/-/g, '.').toUpperCase(); // fix: replace allowed character '-' with dot - some releases replace with dot
@@ -127,6 +125,8 @@ var verifyMovie = function(release) {
                 isVerified: validated
             };
 
+            _this.addIMDbInfo(imdbInfo);
+
             if (release.imdb._id == null || release.pubdate < release.imdb.pubdate) {
                 imdbInfo.pubdate = release.pubdate;
             }
@@ -138,137 +138,62 @@ var verifyMovie = function(release) {
         });
 };
 
-
-//*********************aqui
 var verifyShow = function(release) {
     var _this = this;
 
-    return Promise.resolve(this.getShow(release.showId))
-        .then(function(show) {
-            if (show) {
-                if (show.isVerified) {
-                    var r = {
-                        _id: release._id,
-                        imdbId: show.imdbId,
-                        isVerified: 1
-                    };
-
-                    return db.upsertRelease(r)
-                        .then(function() {
-                            log.found(release.name);
-                            release.isVerified = 1;
-                            release.addic7edId = show.addic7edId;
-                            return jobHandler(release);
-                        });
-                } else {
-                    return;
-                }
-            } else {
-                return providers.rarbg.fetch(release.name, release.category)
-                    .then(function(torrent) {
-                        if (!torrent) {
-                            return;
-                        }
-
-                        var show = {
-                            _id: release.showId,
-                            imdbId: torrent.imdbId,
-                        };
-
-                        return db.upsertShow(show)
-                            .then(function() {
-                                return _this.addShow(show);
-                            });
-                    });
-
-                // var altSearch = release.showId + '-' + release.parsed.group; // releaseTitle-group
-
-                // return providers.kickasstorrents.fetchReleaseInfo(release.name, release.category, altSearch)
-                //     .then(function (info) {
-                //         if (!info) {
-                //             return;
-                //         }
-
-                //         return providers.addic7ed.fetchShowId(info.title)
-                //             .then(function (addic7edId) {
-                //                 if (!addic7edId && !providers.addic7ed.isOn) {
-                //                     return;
-                //                 }
-
-                //                 var show = {
-                //                     _id: release.showId,
-                //                     folder: info.title.replace(/\\|\/|:|\*|\?|"|<|>|\|/g, ''),
-                //                     imdbId: info.imdbId,
-                //                     addic7edId: addic7edId
-                //                 };
-
-                //                 return db.upsertShow(show)
-                //                     .then(function () {
-                //                         return _this.addShow(show);
-                //                     });
-                //             });
-                //     });
+    return Promise.resolve(this.getIMDbInfo(release.imdbId) || providers.imdb.fetch(release.imdbId, release.category.type))
+        .then(function(imdbInfo) {
+            if (!imdbInfo) {
+                return;
             }
+
+            var isNewEpisodePromise;
+            var r = {
+                _id: release._id,
+                imdbId: imdbInfo._id, // because of imdb redirects, initial imdbId could not be the final one)
+                isVerified: true
+            };
+
+            if (release.imdb._id == null) {
+                isNewEpisodePromise = Promise.resolve(true);
+            } else if (release.imdb.pubdate >= release.pubdate) {
+                isNewEpisodePromise = Promise.resolve(false);
+            } else {
+                isNewEpisodePromise = db.getLastEpisode(imdbInfo._id)
+                    .then(function(lastEpisode) {
+                        // return isNewEpisode;
+                        return (release.season > lastEpisode.season) || (release.season == lastEpisode.season && _.max(release.episode) > _.max(lastEpisode.episode)) || (release._id == lastEpisode._id);
+                    });
+            }
+
+            _this.addIMDbInfo(imdbInfo);
+
+            return isNewEpisodePromise
+                .then(function(isNewEpisode) {
+                    if (isNewEpisode) {
+                        imdbInfo.pubdate = release.pubdate;
+                    }
+
+                    return db.upsertIMDb(imdbInfo)
+                })
+                .then(function() {
+                    return db.upsertRelease(r);
+                });
         });
 };
 
 // **************************************************
-// jobHandler
-// **************************************************
-// var jobHandler = function(release) {
-//     if (release.isVerified) {
-//         return fetchSubtitle(release)
-//             .then(function(subtitleId) {
-//                 var r = {
-//                     _id: release._id,
-//                     subtitleId: subtitleId
-//                 };
-
-//                 return subtitleId && db.upsertRelease(r);
-//             });
-//     } else {
-
-//     }
-// };
-
-// **************************************************
-// fetch movie/show info & validate
-// **************************************************
-
-
-// **************************************************
-// fetchTorrent & fetchSubtitle
-// **************************************************
-// var fetchTorrent = function (release) {
-//     return providers.kickasstorrents.fetch(release.name, release.category)
-//         .then(function (torrent) {
-//             return torrent || providers.rarbg.fetch(release.name, release.category);
-//         })
-//         .then(function (torrent) {
-//             return torrent || providers.thepiratebay.fetch(release.name, release.category);
-//         });
-// };
-
-// this.fetchSubtitle = function(release) {
-//     if (release.category.type == 'movie') {
-//         return providers.legendasdivx.fetch(release.name, release.imdbId);
-//     } else {
-//         return release.addic7edId && providers.addic7ed.fetch(release.addic7edId, release.parsed);
-//     }
-// };
-
-// **************************************************
 // database maintenance
 // **************************************************
-// var refreshIMDbOutdated = function () {
-//     return db.getIMDbOutdated()
-//         .then(function (doc) {
-//             return doc && providers.imdb.fetch(doc._id)
-//         })
-//         .then(function (imdbInfo) {
-//             return imdbInfo && db.upsertIMDb(imdbInfo);
-//         });
-// };
+var refreshIMDbOutdated = function() {
+    return db.getIMDbOutdated()
+        .then(function(doc) {
+            return doc && providers.imdb.fetch(doc._id, doc.type)
+        })
+        .then(function(imdbInfo) {
+            return imdbInfo && db.upsertIMDb(imdbInfo);
+        });
+};
 
 // **************************************************
 // controller
@@ -290,8 +215,19 @@ Core.prototype.refresh = function() {
     var _this = this;
 
     return _.bind(fetchReleases, this)()
+        // .then(function(releases) {
+        //     var fs = require('fs');
+        //     var json = JSON.stringify(releases);
+        //     fs.writeFileSync('releases.json', json);
+        //     return releases;
+        // })
         .map(function(release) {
             // release.parsed = common.scene.parseRelease(release);
+
+            // if (release.category.type = 'show' && release.parsed) {
+            //     release.season = release.parsed.season;
+            //     release.episode = release.parsed.episode;
+            // }
 
             // if (!release.imdb || !release.parsed) {
             //     release.isVerified = false;
@@ -302,14 +238,6 @@ Core.prototype.refresh = function() {
         // .then(db.getReleasesToVerify)
         // .each(function(release) {
         //     return _.bind(verifyRelease, _this)(release);
-        // })
-
-
-
-        // .then(_.bind(fetchShowList, this))
-        // .then(_.partial(db.getJobs, fetchAllJobs))
-        // .each(function (release) {
-        //     return _.bind(jobHandler, _this)(release);
         // })
         // .then(refreshIMDbOutdated)
         .then(function() {

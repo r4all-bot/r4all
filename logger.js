@@ -7,14 +7,12 @@ var winston_config = {
     levels: {
         error: 0,
         warn: 1,
-        drop: 2,
-        found: 3
+        info: 2
     },
     colors: {
         error: 'red',
         warn: 'yellow',
-        drop: 'magenta',
-        found: 'green'
+        info: 'green'
     }
 };
 
@@ -42,13 +40,11 @@ var logger = expandErrors(new(winston.Logger)({
             timestamp: function() {
                 return moment().tz('Europe/Lisbon').format('YYYY-MM-DD HH:mm:ss');
             },
-            colorize: true,
-            level: 'found'
+            colorize: true
         }),
         new(require('winston-daily-rotate-file'))({
-            filename: process.env.OPENSHIFT_LOG_DIR ? path.join(process.env.OPENSHIFT_LOG_DIR, 'server.log') : 'server.log',
-            datePattern: '.yyyy-MM',
-            level: 'found'
+            filename: 'server.log',
+            datePattern: '.yyyy-MM'
         })
     ],
     levels: winston_config.levels,

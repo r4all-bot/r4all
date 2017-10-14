@@ -1,6 +1,7 @@
 'use strict';
 
 var Promise = require('bluebird');
+var zlib = require('zlib');
 var request = require('request').defaults({
     method: 'GET',
     headers: {
@@ -12,18 +13,21 @@ var request = require('request').defaults({
     timeout: 30 * 1000,
     jar: true
 });
-var zlib = require('zlib');
+var _ = require('lodash');
 var URI = require('urijs');
 var latenize = require('latenize');
 
 var settings = require('./settings.js');
+
+Promise.config({
+    cancellation: true
+});
 
 var req = function(url, options) {
     return new Promise(function(resolve, reject) {
         options = options || {};
 
         options.url = url;
-        options.timeout = options.timeout || 15 * 1000;
 
         var r = request(options);
 
@@ -66,15 +70,16 @@ var common = module.exports = {
 
         return new Promise(function(resolve, reject) {
             (function retry(attempt) {
-                attempt = attempt || 0;
+                attempt = attempt || 1;
 
                 return req(url, options)
                     .then(resolve)
                     .catch(function(err) {
                         if (attempt < retryAttempts) {
-                            setTimeout(function() {
-                                return retry(++attempt);
-                            }, settings.attemptsInterval);
+                            return Promise.delay(settings.requestAttemptsInterval)
+                                .then(function() {
+                                    return retry(++attempt);
+                                });
                         } else {
                             return reject(err);
                         }
@@ -114,70 +119,65 @@ var common = module.exports = {
         return { type: type, quality: quality };
     },
 
-    // resizeImage: function(imageUrl, providers, size) {
-    //     if (!imageUrl) return imageUrl;
+    resizeImage: function(imageUrl, providers, size) {
+        if (!imageUrl) return imageUrl;
 
-    //     var uri = URI(imageUrl);
+        var uri = URI(imageUrl);
 
-    //     switch (uri.domain()) {
-    //         case 'media-imdb.com':
-    //             return providers.imdb.resizeImage(imageUrl, size);
-    //         case 'image.tmdb.org':
-    //             return providers.themoviedb.resizeImage(imageUrl, size);
-    //         default:
-    //             return imageUrl;
-    //     }
-    // },
-
-    // getInfohash: function(magnetLink) {
-    //     var infohash = magnetLink && this.rem(/magnet:\?xt=urn:btih:(\w+?)&/, magnetLink);
-    //     return infohash && infohash.toUpperCase();
-    // },
+        switch (uri.domain()) {
+            case 'media-imdb.com':
+                return providers.imdb.resizeImage(imageUrl, size);
+            case 'image.tmdb.org':
+                return providers.themoviedb.resizeImage(imageUrl, size);
+            default:
+                return imageUrl;
+        }
+    },
 
     scene: {
         tags: [],
 
-        // parseRelease: function(release) {
-        //     var releaseName = release.name;
-        //     var parsed = null;
+        parseRelease: function(release) {
+            var releaseName = release.name;
+            var parsed = null;
 
-        //     var toMatch = this.typeMatch[category];
-        //     var regex, result;
+            var toMatch = this.typeMatch[category];
+            var regex, result;
 
-        //     if (category.charAt(0) == 'm')
-        //         regex = new RegExp('([\\w-.()]+?)(?:\\.(\\d{4}))?(?:\.(' + this.tags.join('|') + '))?\\.' + toMatch + '\\.x264-([\\w]+)', 'i');
-        //     else
-        //         regex = new RegExp('([\\w-.()]+?)\\.S?(\\d{1,2})((?:(?:\\.|-)?(?:E|x)\\d{1,2})+)([\\w-.()]*?)\\.' + toMatch + '(?:\\.|_)x264-([\\w]+)', 'i');
+            if (category.charAt(0) == 'm')
+                regex = new RegExp('([\\w-.()]+?)(?:\\.(\\d{4}))?(?:\.(' + this.tags.join('|') + '))?\\.' + toMatch + '\\.x264-([\\w]+)', 'i');
+            else
+                regex = new RegExp('([\\w-.()]+?)\\.S?(\\d{1,2})((?:(?:\\.|-)?(?:E|x)\\d{1,2})+)([\\w-.()]*?)\\.' + toMatch + '(?:\\.|_)x264-([\\w]+)', 'i');
 
-        //     result = common.rem(regex, releaseName);
+            result = common.rem(regex, releaseName);
 
-        //     if (result) {
-        //         parsed = {};
+            if (result) {
+                parsed = {};
 
-        //         if (category.charAt(0) == 'm') {
-        //             parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
-        //             parsed.year = result[1] && parseInt(result[1]); // year
-        //             parsed.tag = result[2];
-        //             parsed.group = result[3];
-        //         } else {
-        //             result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
-        //                 return parseInt(ep, 10);
-        //             });
+                if (category.charAt(0) == 'm') {
+                    parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
+                    parsed.year = result[1] && parseInt(result[1]); // year
+                    parsed.tag = result[2];
+                    parsed.group = result[3];
+                } else {
+                    result[2] = result[2].match(/\d{1,2}/gi).map(function(ep) { // episodes array generator
+                        return parseInt(ep, 10);
+                    });
 
-        //             parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
-        //             parsed.season = parseInt(result[1], 10); // season
-        //             parsed.episodes = [];
-        //             parsed.tag = result[3];
-        //             parsed.group = result[4];
+                    parsed.releaseTitle = result[0].replace(/_/g, '.').toUpperCase();
+                    parsed.season = parseInt(result[1], 10); // season
+                    parsed.episodes = [];
+                    parsed.tag = result[3];
+                    parsed.group = result[4];
 
-        //             for (var i = result[2][0]; i <= result[2][result[2].length - 1]; i++) { // fill in all episodes
-        //                 parsed.episodes.push(i);
-        //             }
-        //         }
-        //     }
+                    for (var i = result[2][0]; i <= result[2][result[2].length - 1]; i++) { // fill in all episodes
+                        parsed.episodes.push(i);
+                    }
+                }
+            }
 
-        //     return parsed;
-        // },
+            return parsed;
+        },
 
         // parseMovieRelease: function() {
 

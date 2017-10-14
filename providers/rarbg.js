@@ -1,18 +1,19 @@
 'use strict';
 
-var Promise = require('bluebird');
 var debug = require('debug')('RARBG');
-var cheerio = require('cheerio');
+var Promise = require('bluebird');
 var _ = require('lodash');
+var URI = require('urijs');
+var cheerio = require('cheerio');
 var moment = require('moment-timezone');
 
 var log = require('../logger.js');
+var settings = require('../settings.js');
 var common = require('../common.js');
 var proxy = require('./proxy.js');
 
 var RARBG = function() {
-    this.URL = 'https://rarbg.to';
-    this.TORRENTLIST_URL = this.URL + '/torrents.php?category=44%3B45%3B41&page={page}'
+    this.URL = URI('https://rarbg.to');
 
     // status
     this.isOn = true;
@@ -41,10 +42,11 @@ var getReleases = function(html, page) {
         var column3 = $(this).find('.lista').eq(2);
 
         var release = {
-            category: parseInt(common.regex(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
+            _id: null,
             name: common.unleak($(column2).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
-            imdbId: common.regex(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href')),
-            pubdate: common.unleak($(column3).text())
+            category: parseInt(common.regex(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
+            pubdate: common.unleak($(column3).text()),
+            imdbId: common.regex(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href'))
         };
 
         // validation
@@ -76,43 +78,54 @@ var getReleases = function(html, page) {
         done = true;
     }
 
-    return done || Promise.delay(1 * 1000).then(function() {
-        return _.bind(getReleasesFromPage, _this)(++page);
-    });
+    return done;
 };
 
 var getReleasesFromPage = function(page, attempt) {
-    var url = this.TORRENTLIST_URL;
-
-    page = page || 1;
     attempt = attempt || 1;
 
-    url = url.replace('{page}', page);
-    
+    attempt > 1 && debug('attempt: ' + attempt);
+
+    var url = this.URL.clone()
+        .segment('torrents.php')
+        .addQuery({ category: '41;44;45', page: page })
+        .toString();
+
     var _this = this;
 
-    return Promise.resolve(this.proxy || proxy.fetch(url, { type: 'html', element: '.lista2t' }))
-        .then(function(proxy) {
-            if (!proxy) throw err;
-
-            if (_this.proxy != proxy) {
-                _this.proxy = proxy;
-                debug('using new proxy: ' + proxy);
+    return Promise.resolve((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'html', element: '.lista2t' }))
+        .then(function(result) {
+            if (_this.proxy != result.proxy) {
+                _this.proxy = result.proxy;
+                debug('using new proxy: ' + _this.proxy);
             }
 
             debug(url);
 
-            return common.request(url, { proxy: _this.proxy });
+            return (result.resp || common.request(url, { proxy: _this.proxy }));
         })
         .then(function(html) {
             return _.bind(getReleases, _this)(html, page);
         })
         .catch(function(err) {
-            if (attempt > 5) throw err;
+            if (attempt >= settings.loadPageAttempts) throw err;
 
             _this.proxy = null;
 
             return _.bind(getReleasesFromPage, _this)(page, ++attempt);
+        });
+};
+
+var getReleasesFromPages = function(page) {
+    page = page || 1;
+
+    var _this = this;
+
+    return _.bind(getReleasesFromPage, _this)(page)
+        .then(function(done) {
+            return done || Promise.delay(1 * 1000).then(function() {
+                return _.bind(getReleasesFromPages, _this)(++page);
+            });
         });
 };
 
@@ -122,7 +135,7 @@ RARBG.prototype.fetchReleases = function() {
 
     var _this = this;
 
-    return _.bind(getReleasesFromPage, _this)()
+    return _.bind(getReleasesFromPages, _this)()
         .then(function() {
             if (!_this.isOn) {
                 _this.isOn = true;

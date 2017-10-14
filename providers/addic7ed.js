@@ -8,10 +8,11 @@ var common = require('../common.js');
 
 var COMPATIBILITY = {
     DIMENSION: 'LOL|SYS',
-    IMMERSE: 'XII|ASAP'
+    IMMERSE: 'XII|ASAP',
+    AVS: 'SVA'
 };
 
-var Addic7ed = function () {
+var Addic7ed = function() {
     this.URL = 'http://www.addic7ed.com';
     this.SHOW_LIST_URL = this.URL + '/shows.php';
     this.SHOW_LIST_SOFT_URL = this.URL + '/ajax_getShows.php';
@@ -23,7 +24,7 @@ var Addic7ed = function () {
 };
 Addic7ed.prototype.constructor = Addic7ed;
 
-var fetchSubtitle = function (html, group) {
+var fetchSubtitle = function(html, group) {
     var subtitleId = null;
 
     group = group.toUpperCase();
@@ -38,13 +39,13 @@ var fetchSubtitle = function (html, group) {
     if (!$('#qsSeason').length) throw 'site validation failed (fetchSubtitle)';
 
     // each subtitle
-    $('.tabel95 .tabel95').each(function () {
+    $('.tabel95 .tabel95').each(function() {
         var version = common.unleak($(this).find('.NewsTitle').text());
         var compatibility = common.unleak($(this).find('.newsDate').first().text());
 
         // skip WEB-DL versions
         if (!version.match(/WEB(-|.)DL/i)) {
-            $(this).find('.language').each(function () {
+            $(this).find('.language').each(function() {
                 // filter by English substitles and consider only completed && skip hearing imparied
                 if ($(this).text().match(/English/i) && $(this).next().text().match(/Completed/i) && !$(this).parent().next().find('img[src="http://www.addic7ed.com/images/hi.jpg"]').length) {
                     if (version.match(re) || compatibility.match(re)) {
@@ -62,11 +63,11 @@ var fetchSubtitle = function (html, group) {
     return subtitleId;
 };
 
-Addic7ed.prototype.download = function (subtitleId) {
+Addic7ed.prototype.download = function(subtitleId) {
     var _this = this;
 
-    return common.req(this.URL + subtitleId, this.URL)
-        .then(function (subtitle) {
+    return common.request(this.URL + subtitleId, this.URL)
+        .then(function(subtitle) {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -74,7 +75,7 @@ Addic7ed.prototype.download = function (subtitleId) {
 
             return subtitle;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[Addic7ed] ', err);
@@ -84,23 +85,23 @@ Addic7ed.prototype.download = function (subtitleId) {
         });
 };
 
-Addic7ed.prototype.fetchShowId = function (showTitle) {
+Addic7ed.prototype.fetchShowId = function(showTitle) {
     debug(this.SHOW_LIST_SOFT_URL);
 
     var _this = this;
 
-    return common.retry(this.SHOW_LIST_SOFT_URL)
-        .then(function (html) {
+    return common.request(this.SHOW_LIST_SOFT_URL)
+        .then(function(html) {
             var $ = cheerio.load(html);
 
             // validate the page
             if (!$('#qsShow').length) throw 'site validation failed (fetchShowId)';
 
-            return parseInt(common.unleak($('#qsShow option').filter(function () {
+            return parseInt(common.unleak($('#qsShow option').filter(function() {
                 return $(this).html() == showTitle;
             }).val())) || '';
         })
-        .then(function (addic7edId) {
+        .then(function(addic7edId) {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -108,7 +109,7 @@ Addic7ed.prototype.fetchShowId = function (showTitle) {
 
             return addic7edId;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[Addic7ed] ', err);
@@ -118,18 +119,18 @@ Addic7ed.prototype.fetchShowId = function (showTitle) {
         });
 };
 
-Addic7ed.prototype.fetch = function (addic7edId, parsed) {
+Addic7ed.prototype.fetch = function(addic7edId, parsed) {
     var url = this.SHOW_EPISODE_URL.replace(/\{addic7edId\}/, addic7edId).replace(/\{season\}/, parsed.season).replace(/\{episode\}/, parsed.episodes[0]);
 
     debug(url);
 
     var _this = this;
 
-    return common.retry(url)
-        .then(function (html) {
+    return common.request(url)
+        .then(function(html) {
             return fetchSubtitle(html, parsed.group);
         })
-        .then(function (subtitleId) {
+        .then(function(subtitleId) {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -137,7 +138,7 @@ Addic7ed.prototype.fetch = function (addic7edId, parsed) {
 
             return subtitleId;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[Addic7ed] ', err);

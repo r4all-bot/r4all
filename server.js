@@ -61,15 +61,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 require('./routes')(app);
 
-// function memoryUsage() {
-//     var data = {
-//         date: app.locals.moment().tz('Europe/Lisbon').toDate(),
-//         rss: process.memoryUsage().rss
-//     };
+function memoryUsage() {
+    var data = {
+        date: app.locals.moment().tz('Europe/Lisbon').toDate(),
+        rss: process.memoryUsage().rss
+    };
 
-//     return app.locals.db.insertMemoryUsage(data)
-//         .then(setTimeout(memoryUsage, 15 * 60 * 1000));
-// };
+    return app.locals.db.insertMemoryUsage(data)
+        .then(setTimeout(memoryUsage, 15 * 60 * 1000));
+};
 
 // (function initApp() {
 //     app.locals.db.initialize()
@@ -91,6 +91,79 @@ return app.locals.db.initialize()
         .then(function() {
             return app.locals.core.refresh();
         })
+        // .then(function() {
+        //     var fs = require('fs');
+        //     var releases = fs.readFileSync('releases.json', 'utf8');
+        //     releases = JSON.parse(releases);
+        //     console.log(releases.length);
+        //     return releases;
+        // })
+        // .map(function(release) {
+        //     // release.parsed = common.scene.parseRelease(release);
+
+        //     // if (release.category.type = 'show' && release.parsed) {
+        //     //     release.season = release.parsed.season;
+        //     //     release.episode = release.parsed.episode;
+        //     // }
+
+        //     // if (!release.imdb || !release.parsed) {
+        //     //     release.isVerified = false;
+        //     // }
+
+        //     return app.locals.db.upsertRelease(release);
+        // })
+        // .then(function() {
+        //     console.log('done!!!');
+        // });
+
+
+
+
+
+
+// app.locals.db.initialize()
+// .then(function(){
+//     return app.locals.db.getLastEpisode('tt0898266')
+//         .then(function(data){
+//             console.log(data);
+//         })
+//         .catch(function(err) {
+//             console.log(err);
+//         });    
+// });
+
+
+
+// var imdb = require('./providers/imdb.js');
+
+// var id = 'tt5071412';
+// var type = 'show';
+
+// imdb.fetch(id, type)
+//         .then(function(info) {
+//             console.log(info);
+//         })
+
+// var trakttv = require('./providers/trakttv.js');
+// var mdb = require('./providers/themoviedb.js');
+
+// var id = 'tt5071412';
+// var type = 'show';
+
+// trakttv.fetch(id, type)
+//         .then(function(newInfo) {
+//             console.log(newInfo);
+
+//             return mdb.fetch(id, type);
+//         })
+//         .then(function(newInfo) {
+//             console.log(newInfo);
+//             console.log(newInfo.tv_episode_results);
+//             console.log(newInfo.tv_season_results);
+//         });
+
+
+
 // var rarbg = require('./providers/rarbg.js');
 
 // rarbg.fetchReleases().then(function() {

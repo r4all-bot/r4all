@@ -12,13 +12,13 @@ module.exports = {
     // initialize
     // **************************************************
     initialize: function() {
-        var db_user = (process.env.MONGODB_USER || 'userPHF');
-        var db_password = (process.env.MONGODB_PASSWORD || 'T0Osxv3Mw0vpCAvd');
+        var db_name = (process.env.MONGODB_DATABASE || 'r4all');
         var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
         var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
-        var db_name = (process.env.MONGODB_DATABASE || 'r4all');
-
-        return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_password + '@' + db_host + ':' + db_port + '/' + db_name)
+        var db_user = (process.env.MONGODB_USER || 'userPHF');
+        var db_pass = (process.env.MONGODB_PASSWORD || 'T0Osxv3Mw0vpCAvd');
+        
+        return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_pass + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function(database) {
                 db = database;
                 return;
@@ -31,10 +31,6 @@ module.exports = {
     getLastRelease: function() {
         return db.collection('releases').find().sort({ pubdate: -1 }).limit(1).nextAsync();
     },
-
-    // getShowList: function() {
-    //     return db.collection('shows').find({}).toArrayAsync();
-    // },
 
     getReleasesToVerify: function() {
         return db.collection('releases').aggregateAsync([{
@@ -56,53 +52,19 @@ module.exports = {
         }]);
     },
 
-    // getJobs: function(fetchAllJobs) {
-    //     return db.collection('releases').aggregateAsync([{
-    //         $match: {
-    //             date: { $gt: fetchAllJobs ? moment([1970]).toDate() : moment().subtract(1, 'months').toDate() },
-    //             $or: [{
-    //                 isVerified: null
-    //             }, {
-    //                 $and: [{
-    //                     isVerified: 1
-    //                 }, {
-    //                     $or: [{
-    //                         magnetLink: null
-    //                     }, {
-    //                         subtitleId: null
-    //                     }]
-    //                 }]
-    //             }]
-    //         }
-    //     }, {
-    //         $sort: { date: 1 }
-    //     }, {
-    //         $lookup: {
-    //             from: 'shows',
-    //             localField: 'showId',
-    //             foreignField: '_id',
-    //             as: 'show'
-    //         }
-    //     }, {
-    //         $unwind: {
-    //             path: '$show',
-    //             preserveNullAndEmptyArrays: true
-    //         }
-    //     }, {
-    //         $project: {
-    //             name: 1,
-    //             category: 1,
-    //             imdbId: 1,
-    //             nfo: 1,
-    //             parsed: 1,
-    //             showId: 1,
-    //             isVerified: 1,
-    //             magnetLink: 1,
-    //             subtitleId: 1,
-    //             addic7edId: '$show.addic7edId'
-    //         }
-    //     }]);
-    // },
+    getLastEpisode: function(imdbId) {
+        return db.collection('releases').aggregateAsync([{
+            $match: { imdbId: imdbId }
+        }, {
+            $unwind: {
+                path: '$episode'
+            }
+        }, {
+            $sort: { 'season': -1, 'episode': -1, 'pubdate': 1 }
+        }, {
+            $limit: 1
+        }]);
+    },
 
     // **************************************************
     // get - dashboard
@@ -271,31 +233,12 @@ module.exports = {
     // upsert
     // **************************************************
     upsertRelease: function(release) {
-        var update = {
-            $set: release
-        };
-
-        if (release.isVerified) {
-            update.$currentDate = { verifiedOn: true };
-        }
-
-        return db.collection('releases').updateOneAsync({ _id: release._id }, update, { upsert: true });
+        return db.collection('releases').updateOneAsync({ _id: release._id }, { $set: release }, { upsert: true });
     },
 
-    // upsertShow: function(show) {
-    //     return db.collection('shows').updateOneAsync({ _id: show._id }, { $set: show }, { upsert: true });
-    // },
-
-    // upsertIMDb: function(imdbInfo) {
-    //     return db.collection('imdb').updateOneAsync({
-    //         _id: imdbInfo._id
-    //     }, {
-    //         $set: imdbInfo,
-    //         $currentDate: { updatedOn: true }
-    //     }, {
-    //         upsert: true
-    //     });
-    // },
+    upsertIMDb: function(imdbInfo) {
+        return db.collection('imdb').updateOneAsync({ _id: imdbInfo._id }, { $set: imdbInfo, $currentDate: { updatedOn: true } }, { upsert: true });
+    },
 
     // **************************************************
     // remove
@@ -307,35 +250,35 @@ module.exports = {
     // **************************************************
     // database maintenance
     // **************************************************
-    // getIMDbOutdated: function() {
-    //     return db.collection('imdb').aggregateAsync([
-    //             { $sort: { updatedOn: 1 } },
-    //             { $limit: 1 },
-    //             { $project: { _id: 1 } }
-    //         ])
-    //         .then(function(docs) {
-    //             return docs[0];
-    //         });
-    // },
+    getIMDbOutdated: function() {
+        return db.collection('imdb').aggregateAsync([
+                { $sort: { updatedOn: 1 } },
+                { $limit: 1 },
+                { $project: { _id: 1 } }
+            ])
+            .then(function(docs) {
+                return docs[0];
+            });
+    },
 
     // **************************************************
     // memory
     // **************************************************
-    // insertMemoryUsage: function(data) {
-    //     return db.collection('memory').insertAsync(data);
-    // },
+    insertMemoryUsage: function(data) {
+        return db.collection('memory').insertAsync(data);
+    },
 
-    // getMemoryUsage: function() {
-    //     return db.collection('memory').aggregateAsync([{
-    //         $sort: { date: 1 }
-    //     }, {
-    //         $project: {
-    //             _id: 0,
-    //             x: { $subtract: ['$date', new Date('1-1-1970')] },
-    //             y: { $divide: ['$rss', 1048576] }
-    //         }
-    //     }]);
-    // },
+    getMemoryUsage: function() {
+        return db.collection('memory').aggregateAsync([{
+            $sort: { date: 1 }
+        }, {
+            $project: {
+                _id: 0,
+                x: { $subtract: ['$date', new Date('1-1-1970')] },
+                y: { $divide: ['$rss', 1048576] }
+            }
+        }]);
+    },
 
     // **************************************************
     // api ## final projections review...

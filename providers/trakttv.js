@@ -26,7 +26,7 @@ var STATUS_CODES = {
     '522': 'Service Unavailable - Cloudflare error'
 };
 
-var TraktTv = function () {
+var TraktTv = function() {
     this.URL = 'https://twitter.com/traktapi';
 
     // status
@@ -34,7 +34,7 @@ var TraktTv = function () {
 };
 TraktTv.prototype.constructor = TraktTv;
 
-var fetchMedia = function (obj) {
+var fetchMedia = function(obj) {
     var media = {};
 
     // validation
@@ -51,8 +51,8 @@ var fetchMedia = function (obj) {
  * METHODS (http://docs.trakt.apiary.io/)
  */
 
-var get = function (endpoint, getVariables) {
-    return new Promise(function (resolve, reject) {
+var get = function(endpoint, getVariables) {
+    return new Promise(function(resolve, reject) {
         getVariables = getVariables || {};
 
         var requestUri = API_ENDPOINT.clone()
@@ -69,9 +69,9 @@ var get = function (endpoint, getVariables) {
                 'trakt-api-version': '2',
                 'trakt-api-key': CLIENT_ID
             }
-        }, function (error, response, body) {
-            if (error || !body) {
-                reject(error || 'no body');
+        }, function(error, response, body) {
+            if (error) {
+                reject(error);
             } else if (response.statusCode >= 400) {
                 reject(response.statusCode + ': ' + STATUS_CODES[response.statusCode]);
             } else {
@@ -87,14 +87,14 @@ var get = function (endpoint, getVariables) {
     });
 };
 
-TraktTv.prototype.fetch = function (imdbId, type) {
+TraktTv.prototype.fetch = function(imdbId, type) {
     var _this = this;
 
     return get(type + 's/' + imdbId, {
             extended: 'full'
         })
         .then(fetchMedia)
-        .then(function (media) {
+        .then(function(media) {
             if (!_this.isOn) {
                 _this.isOn = true;
                 debug('seems to be back');
@@ -102,7 +102,7 @@ TraktTv.prototype.fetch = function (imdbId, type) {
 
             return media;
         })
-        .catch(function (err) {
+        .catch(function(err) {
             if (_this.isOn) {
                 _this.isOn = false;
                 log.error('[TraktTv] ', err);

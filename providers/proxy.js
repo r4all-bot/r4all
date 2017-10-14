@@ -1,17 +1,18 @@
 'use strict';
 
-var Promise = require('bluebird');
 var debug = require('debug')('Proxy');
-var cheerio = require('cheerio');
+var Promise = require('bluebird');
 var _ = require('lodash');
 var ProxyLists = require('proxy-lists');
+var cheerio = require('cheerio');
 
-var log = require('../logger.js');
 var common = require('../common.js');
 
-var PROXY = function() {
-    this.index = 0;
-};
+Promise.config({
+    cancellation: true
+});
+
+var PROXY = function() {};
 PROXY.prototype.constructor = PROXY;
 
 var fetchProxyListFromSource = function(source) {
@@ -34,8 +35,6 @@ var fetchProxyListFromSource = function(source) {
 };
 
 var proxyTester = function(url, validation, proxy) {
-    var _this = this;
-
     return common.request(url, { proxy: proxy, json: (validation.type == 'json') })
         .then(function(resp) {
             if (validation.type == 'html') {
@@ -47,51 +46,40 @@ var proxyTester = function(url, validation, proxy) {
                 // already validated
             }
 
-            return proxy;
+            return { proxy: proxy, resp: resp };
         });
 };
 
 var fetchProxy = function(url, validation, i) {
-    var stop;
-    var sources = ProxyLists.listSources();
+    i = i || 0;
 
-    if (!sources[i]) i = 0;
-    if (!sources[i]) return Promise.resolve(null);
-    if (sources[i].requiredOptions.apiKey) return _.bind(fetchProxy, this)(url, validation, ++i);
-    if (i == this.index) stop = true;
+    var sources = _.filter(ProxyLists.listSources(), function(s) {
+        return !s.requiredOptions.apiKey;
+    });
+
+    if (!sources[i]) throw 'unable to fetch a working proxy';
 
     debug('fetching proxy from [' + i + '] ' + sources[i].name + '...');
 
-    var _this = this;
-
     return fetchProxyListFromSource(sources[i])
         .then(function(proxiesList) {
-            if (!proxiesList.length) return;
+            if (!proxiesList.length) throw 'proxy list is empty';
 
             return _.map(_.uniqBy(proxiesList, function(p) { return 'http://' + p.ipAddress + ':' + p.port; }), function(p) {
                 var proxy = 'http://' + p.ipAddress + ':' + p.port;
-                return _.bind(proxyTester, _this)(url, validation, proxy);
+                return proxyTester(url, validation, proxy);
             });
         })
         .any()
-        .then(function(proxy) {
-            _this.index = i;
-            return proxy;
-        })
         .catch(function(err) {
-            if (stop) {
-                debug('unable to fetch a working proxy');
-                return null;
-            } else {
-                return _.bind(fetchProxy, _this)(url, validation, ++i);
-            }
+            return fetchProxy(url, validation, ++i);
         });
 };
 
 PROXY.prototype.fetch = function(url, validation) {
     debug('fetching new proxy...');
 
-    return _.bind(fetchProxy, this)(url, validation, this.index + 1);
+    return fetchProxy(url, validation);
 };
 
 module.exports = new PROXY;
