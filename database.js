@@ -17,7 +17,7 @@ module.exports = {
         var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
         var db_user = (process.env.MONGODB_USER || 'userPHF');
         var db_pass = (process.env.MONGODB_PASSWORD || 'T0Osxv3Mw0vpCAvd');
-        
+
         return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_pass + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function(database) {
                 db = database;
@@ -30,6 +30,10 @@ module.exports = {
     // **************************************************
     getLastRelease: function() {
         return db.collection('releases').find().sort({ pubdate: -1 }).limit(1).nextAsync();
+    },
+
+    getLastPage: function() {
+        return db.collection('releases').find().sort({ page: -1 }).limit(1).nextAsync();
     },
 
     getReleasesToVerify: function() {

@@ -60,10 +60,14 @@ var fetchReleases = function() {
 
     var _this = this;
 
-    return db.getLastRelease()
-        .then(function(lastRelease) {
-            rarbg.lastRelease = lastRelease;
-            return rarbg.fetchReleases();
+    return Promise.join(db.getLastPage(), db.getLastRelease(), function(lastPage, lastRelease) {
+            if (settings.bootstrapDatabase) {
+                rarbg.lastPage = lastPage;
+            } else {
+                rarbg.lastRelease = lastRelease;
+            }
+
+            return rarbg.fetchReleases(settings.bootstrapDatabase);
         })
         .then(function(success) {
             if (!success || _.isEmpty(rarbg.newReleases)) {

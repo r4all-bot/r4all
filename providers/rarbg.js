@@ -19,6 +19,7 @@ var RARBG = function() {
     this.isOn = true;
     this.proxy = null;
 
+    this.lastPage = null;
     this.lastRelease = null;
     this.newReleases = null;
 };
@@ -46,6 +47,7 @@ var getReleases = function(html, page) {
             name: common.unleak($(column2).find('a[href^="/torrent/"]').text()).trim().replace(/\[.+\]$/, ''),
             category: parseInt(common.regex(/\/torrents\.php\?category=(\d+)/i, $(column1).find('a[href^="/torrents.php?category="]').attr('href'))),
             pubdate: common.unleak($(column3).text()),
+            page: page,
             imdbId: common.regex(/\/torrents\.php\?imdb=(tt\d+)/i, $(column2).find('a[href^="/torrents.php?imdb="]').attr('href'))
         };
 
@@ -117,7 +119,7 @@ var getReleasesFromPage = function(page, attempt) {
 };
 
 var getReleasesFromPages = function(page) {
-    page = page || 1;
+    page = page || this.lastPage || 1;
 
     var _this = this;
 
@@ -129,7 +131,7 @@ var getReleasesFromPages = function(page) {
         });
 };
 
-RARBG.prototype.fetchReleases = function() {
+RARBG.prototype.fetchReleases = function(bootstrapDatabase) {
     // init
     this.newReleases = {};
 
@@ -150,7 +152,7 @@ RARBG.prototype.fetchReleases = function() {
                 log.error('[RARBG] ', err);
             }
 
-            return false;
+            return bootstrapDatabase;
         });
 };
 
