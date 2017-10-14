@@ -8,10 +8,6 @@ var cheerio = require('cheerio');
 
 var common = require('../common.js');
 
-Promise.config({
-    cancellation: true
-});
-
 var PROXY = function() {};
 PROXY.prototype.constructor = PROXY;
 

@@ -91,30 +91,30 @@ function memoryUsage() {
 //         .then(function() {
 //             return app.locals.core.refresh();
 //         })
-// .then(function() {
-//     var fs = require('fs');
-//     var releases = fs.readFileSync('releases.json', 'utf8');
-//     releases = JSON.parse(releases);
-//     console.log(releases.length);
-//     return releases;
-// })
-// .map(function(release) {
-//     // release.parsed = common.scene.parseRelease(release);
+        // .then(function() {
+        //     var fs = require('fs');
+        //     var releases = fs.readFileSync('releases.json', 'utf8');
+        //     releases = JSON.parse(releases);
+        //     console.log(releases.length);
+        //     return releases;
+        // })
+        // .map(function(release) {
+        //     // release.parsed = common.scene.parseRelease(release);
 
-//     // if (release.category.type = 'show' && release.parsed) {
-//     //     release.season = release.parsed.season;
-//     //     release.episode = release.parsed.episode;
-//     // }
+        //     // if (release.category.type = 'show' && release.parsed) {
+        //     //     release.season = release.parsed.season;
+        //     //     release.episode = release.parsed.episode;
+        //     // }
 
-//     // if (!release.imdb || !release.parsed) {
-//     //     release.isVerified = false;
-//     // }
+        //     // if (!release.imdb || !release.parsed) {
+        //     //     release.isVerified = false;
+        //     // }
 
-//     return app.locals.db.upsertRelease(release);
-// })
-// .then(function() {
-//     console.log('done!!!');
-// });
+        //     return app.locals.db.upsertRelease(release);
+        // })
+        // .then(function() {
+        //     console.log('done!!!');
+        // });
 
 
 
