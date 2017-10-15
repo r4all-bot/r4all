@@ -131,7 +131,7 @@ var getReleasesFromPages = function(page) {
         });
 };
 
-RARBG.prototype.fetchReleases = function(bootstrapDatabase) {
+RARBG.prototype.fetchReleases = function() {
     // init
     this.newReleases = {};
 
@@ -152,7 +152,7 @@ RARBG.prototype.fetchReleases = function(bootstrapDatabase) {
                 log.error('[RARBG] ', err);
             }
 
-            return bootstrapDatabase;
+            return false;
         });
 };
 

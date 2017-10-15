@@ -67,11 +67,15 @@ var fetchReleases = function() {
                 rarbg.lastRelease = lastRelease;
             }
 
-            return rarbg.fetchReleases(settings.bootstrapDatabase);
+            return rarbg.fetchReleases();
         })
         .then(function(success) {
-            if (!success || _.isEmpty(rarbg.newReleases)) {
+            if ((!success && !settings.bootstrapDatabase) || _.isEmpty(rarbg.newReleases)) {
                 return [];
+            }
+
+            if (settings.bootstrapDatabase && success) {
+                settings.bootstrapDatabase = false;
             }
 
             return _.values(rarbg.newReleases);
