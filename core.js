@@ -62,7 +62,7 @@ var fetchReleases = function() {
 
     return Promise.join(db.getLastPage(), db.getLastRelease(), function(lastPage, lastRelease) {
             if (settings.bootstrapDatabase) {
-                rarbg.lastPage = lastPage.page;
+                rarbg.lastPage = lastPage && lastPage.page;
             } else {
                 rarbg.lastRelease = lastRelease;
             }
