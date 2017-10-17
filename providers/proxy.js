@@ -12,7 +12,7 @@ var PROXY = function() {};
 PROXY.prototype.constructor = PROXY;
 
 var fetchProxyListFromSource = function(source) {
-    var gettingProxies = ProxyLists.getProxiesFromSource(source.name, { protocols: ['http', 'https'], tunnel: false });
+    var gettingProxies = ProxyLists.getProxiesFromSource(source.name, { protocols: ['http', 'https'] });
     var proxiesList = [];
 
     return new Promise(function(resolve, reject) {
@@ -31,7 +31,10 @@ var fetchProxyListFromSource = function(source) {
 };
 
 var proxyTester = function(url, validation, proxy) {
-    return common.request(url, { proxy: proxy, tunnel: false, json: (validation.type == 'json') })
+    var proxyURL = (proxy.protocols ? proxy.protocols[0] : 'http') + '://' + proxy.ipAddress + ':' + proxy.port;
+    var tunnel = (proxy.tunnel ? true : false);
+
+    return common.request(url, { proxy: proxyURL, tunnel: tunnel, json: (validation.type == 'json') })
         .then(function(resp) {
             if (validation.type == 'html') {
                 var $ = cheerio.load(resp);
@@ -42,7 +45,7 @@ var proxyTester = function(url, validation, proxy) {
                 // already validated
             }
 
-            return { proxy: proxy, resp: resp };
+            return { proxy: proxyURL, resp: resp };
         });
 };
 
@@ -61,8 +64,7 @@ var fetchProxy = function(url, validation, i) {
         .then(function(proxiesList) {
             if (!proxiesList.length) throw 'proxy list is empty';
 
-            return _.map(_.uniqBy(proxiesList, function(p) { return p.protocols[0] + '://' + p.ipAddress + ':' + p.port; }), function(p) {
-                var proxy = p.protocols[0] + '://' + p.ipAddress + ':' + p.port;
+            return _.map(proxiesList, function(proxy) {
                 return proxyTester(url, validation, proxy);
             });
         })

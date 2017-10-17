@@ -87,6 +87,84 @@ function memoryUsage() {
 })();
 
 
+
+
+
+
+// var sceneRelease = require('scene-release');
+// var movieTitle = require('movie-title');
+// var Release = require('scene-release-parser');
+
+// // options
+// const options = {
+//     strict: true, // if no main tags found, will throw an exception
+//     defaults: {} // defaults values for : language, resolution and year
+// }
+
+
+// var release = 'Mobile.Suit.Zeta.Gundam.S01.720p.BluRay.x264-CiNEFiLE[rartv]';
+
+// console.log(sceneRelease(release));
+// console.log(movieTitle(release));
+
+// var parsed = new Release(release, options);
+// console.log(parsed);
+
+// options
+// const options = {
+//     strict: true, // if no main tags found, will throw an exception
+//     defaults: {} // defaults values for : language, resolution and year
+// }
+
+// var Release = require('scene-release-parser');
+// var _ = app.locals._;
+
+// return app.locals.db.initialize()
+//     .then(function() {
+//         return app.locals.db.getReleasesToVerify();
+//     })
+//     .then(function(releases) {
+//         console.log('properly tagged...');
+
+//         // properly tagged
+//         _.forEach(releases, function(r) {
+//             if (r.name.indexOf(r.category.quality) == -1) {
+//                 console.log(r.name);
+//             }
+//         });
+
+//         console.log('obey scene naming rules...');
+
+//         // obey scene naming rules
+//         _.forEach(releases, function(r) {
+//             if (app.locals.common.regex(/([^a-zA-Z0-9-._() ])/, r.name)) {
+//                 console.log(r.name);
+//             }
+//         });
+
+//         // parsing
+//         _.forEach(releases, function(r) {
+//             var parsed;
+
+//             try {
+//                 parsed = new Release(r.name, options)
+//             } catch (err) {
+//                 console.log(r.name);
+//             }
+
+//             //console.log(parsed);
+//         });
+//         // var group = app.locals.common.regex(/-([a-zA-Z0-9]+)$/, release.name);
+//         // if(!group) {
+//         //     console.log(release.name)
+//         // }
+//     })
+//     .then(function() {
+//         console.log('done');
+//     })
+
+
+
 // return app.locals.db.initialize()
 //         .then(function() {
 //             return app.locals.core.refresh();

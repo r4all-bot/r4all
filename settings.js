@@ -8,7 +8,7 @@ module.exports = {
     requestAttemptsInterval: (parseInt(process.env.APP_REQUEST_ATTEMPTS_INTERVAL_SECONDS) || 5) * 1000,
 
     // number of attempts to try to load a page when using proxies
-    loadPageAttempts: parseInt(process.env.APP_LOAD_PAGE_ATTEMPTS) || 5,
+    loadPageAttempts: parseInt(process.env.APP_LOAD_PAGE_ATTEMPTS) || 2,
 
     bootstrapDatabase: !!parseInt(process.env.APP_BOOTSTRAP_DATABASE),
 

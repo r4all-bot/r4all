@@ -113,7 +113,7 @@ var common = module.exports = {
     },
 
     getCategory: function(releaseName, categoryId) {
-        var type = (categoryId = 41 ? 'show' : 'movie');
+        var type = (categoryId == 41 ? 'show' : 'movie');
         var quality = (releaseName.indexOf('1080p') != -1 ? '1080p' : '720p');
 
         return { type: type, quality: quality };
