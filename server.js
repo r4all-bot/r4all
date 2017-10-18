@@ -87,7 +87,7 @@ function memoryUsage() {
 })();
 
 
-
+//require('./providers/rarbg.js').fetchReleases().then(function(r){console.log(r)})
 
 
 

@@ -31,10 +31,10 @@ var fetchProxyListFromSource = function(source) {
 };
 
 var proxyTester = function(url, validation, proxy) {
-    var proxyURL = (proxy.protocols ? proxy.protocols[0] : 'http') + '://' + proxy.ipAddress + ':' + proxy.port;
-    var tunnel = (proxy.tunnel ? true : false);
+    proxy.url = (proxy.protocols ? proxy.protocols[0] : 'http') + '://' + proxy.ipAddress + ':' + proxy.port;
+    proxy.tunnel = (proxy.tunnel ? true : false);
 
-    return common.request(url, { proxy: proxyURL, tunnel: tunnel, json: (validation.type == 'json') })
+    return common.request(url, { proxy: proxy.url, tunnel: proxy.tunnel, json: (validation.type == 'json') })
         .then(function(resp) {
             if (validation.type == 'html') {
                 var $ = cheerio.load(resp);
@@ -45,7 +45,7 @@ var proxyTester = function(url, validation, proxy) {
                 // already validated
             }
 
-            return { proxy: proxyURL, resp: resp };
+            return { proxy: proxy, resp: resp };
         });
 };
 
