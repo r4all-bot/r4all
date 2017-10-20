@@ -1,12 +1,10 @@
 'use strict';
 
 module.exports = {
-    bootstrapDatabase: !!parseInt(process.env.APP_BOOTSTRAP_DATABASE),
-
-    useProxy: !!parseInt(process.env.APP_USE_PROXY),
+    bootstrapDatabase: (process.env.APP_BOOTSTRAP_DATABASE && !!parseInt(process.env.APP_BOOTSTRAP_DATABASE)) || true,
 
     // request timeout
-    requestTimeout: (parseInt(process.env.APP_REQUEST_TIMEOUT_SECONDS) || 120) * 1000,
+    requestTimeout: (parseInt(process.env.APP_REQUEST_TIMEOUT_SECONDS) || 60) * 1000,
 
     // delay between each request attempt (retry)
     requestAttemptsInterval: (parseInt(process.env.APP_REQUEST_ATTEMPTS_INTERVAL_SECONDS) || 5) * 1000,

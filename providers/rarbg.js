@@ -95,22 +95,16 @@ var getReleasesFromPage = function(page, attempt) {
 
     var _this = this;
 
-    return Promise.resolve(settings.useProxy && ((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'html', element: '.lista2t' })))
+    return Promise.resolve((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'html', element: '.lista2t' }))
         .then(function(result) {
-            var options = {};
-
-            if (settings.useProxy) {
-                if (_this.proxy.url != result.proxy.url) {
-                    _this.proxy = result.proxy;
-                    debug('using new proxy: ' + _this.proxy.url);
-                }
-
-                options = { proxy: _this.proxy.url, tunnel: _this.proxy.tunnel };
+            if (!_this.proxy || _this.proxy.url != result.proxy.url) {
+                _this.proxy = result.proxy;
+                debug('using new proxy: ' + _this.proxy.url);
             }
 
             debug(url);
 
-            return ((result && result.resp) || common.request(url, options));
+            return (result.resp || common.request(url, { proxy: _this.proxy.url, tunnel: _this.proxy.tunnel }));
         })
         .then(function(html) {
             return _.bind(getReleases, _this)(html, page);
