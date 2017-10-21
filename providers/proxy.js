@@ -107,7 +107,7 @@ PROXY.prototype.fetch = function(url, validation) {
     return fetchProxies()
         .then(_.bind(fetchWorkingProxy, null, url, validation))
         .catch(function(err) {
-            console.log(err);
+            //console.log(err);
             throw 'unable to fetch a working proxy';
         });
 };
