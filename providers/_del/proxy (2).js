@@ -49,6 +49,8 @@ var fetchProxyListFromSource = function(source) {
     });
 };
 
+
+
 var fetchProxy = function(url, validation, i) {
     i = i || 0;
 
@@ -61,11 +63,7 @@ var fetchProxy = function(url, validation, i) {
     debug('fetching proxy from [' + i + '] ' + sources[i].name + '...');
 
     return fetchProxyListFromSource(sources[i])
-        .then(function(proxiesList) {
-            if (!proxiesList.length) throw 'proxy list is empty';
-
-            return _.map(proxiesList, _.bind(proxyTester, null, url, validation));
-        })
+        .map(_.bind(proxyTester, null, url, validation), { concurrency: 1 })
         .any()
         .catch(function(err) {
             console.log(err);

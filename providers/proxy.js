@@ -8,32 +8,86 @@ var cheerio = require('cheerio');
 
 var common = require('../common.js');
 
-var PROXY = function() {};
+var PROXY = function() {
+    //this.sources = null;
+};
 PROXY.prototype.constructor = PROXY;
 
-var fetchProxyListFromSource = function(source) {
-    var gettingProxies = ProxyLists.getProxiesFromSource(source.name, { protocols: ['http', 'https'] });
-    var proxiesList = [];
+// var proxyTester = function(url, validation, proxy) {
+//     proxy.url = (proxy.protocols ? proxy.protocols[0] : 'http') + '://' + proxy.ipAddress + ':' + proxy.port;
+//     proxy.tunnel = (proxy.tunnel ? true : false);
 
-    return new Promise(function(resolve, reject) {
-        gettingProxies.on('data', function(proxies) {
-            proxiesList = proxiesList.concat(proxies);
-        });
+//     return common.request(url, { proxy: proxy.url, tunnel: proxy.tunnel, json: (validation.type == 'json') })
+//         .then(function(resp) {
+//             if (validation.type == 'html') {
+//                 var $ = cheerio.load(resp);
 
-        gettingProxies.on('error', function(error) {
-            reject(error);
-        });
+//                 // validate the page
+//                 if (!$(validation.element).length) throw 'site validation failed';
+//             } else if (validation.type == 'json') {
+//                 // already validated
+//             }
 
-        gettingProxies.once('end', function() {
-            resolve(proxiesList);
-        });
-    });
-};
+//             return { proxy: proxy, resp: resp };
+//         });
+// };
 
+// var fetchWorkingProxyFromSource = function(url, validation, source) {
+//     var gettingProxies = ProxyLists.getProxiesFromSource(source.name, { protocols: ['http', 'https'] });
+//     var promiseChain = Promise.resolve();
+
+//     return new Promise(function(resolve, reject) {
+//         gettingProxies.on('data', function(proxies) {
+//             console.log('data');
+//             console.log(proxies.length);
+//             promiseChain = promiseChain.then(function(proxy) {
+//                     return (proxy && [proxy]) || (proxies.length && _.map(proxies, _.bind(proxyTester, null, url, validation)));
+//                 })
+//                 .any()
+//                 .catch(function(err) {
+//                     return null;
+//                 });
+//         });
+
+//         gettingProxies.on('error', function(error) {
+//             // ignore
+//         });
+
+//         gettingProxies.once('end', function() {
+//             resolve(promiseChain);
+//         });
+//     });
+// };
+
+// var fetchProxy = function(url, validation, i) {
+//     i = i || 6;
+
+//     if (!this.sources || !this.sources[i]) throw 'unable to fetch a working proxy';
+
+//     debug('fetching proxy from [' + i + '] ' + this.sources[i].name + '...');
+
+//     var _this = this;
+
+//     return fetchWorkingProxyFromSource(url, validation, this.sources[i])
+//         .then(function(proxy) {
+//             return proxy || _.bind(fetchProxy, _this)(url, validation, ++i);
+//         });
+// };
+
+
+
+// PROXY.prototype.fetch = function(url, validation) {
+//     this.sources = _.filter(ProxyLists.listSources(), function(s) {
+//         return !s.requiredOptions.apiKey;
+//     });
+
+//     debug('fetching new proxy...');
+
+//     return _.bind(fetchProxy, this)(url, validation);
+// };
+
+// #################################################################################
 var proxyTester = function(url, validation, proxy) {
-    proxy.url = (proxy.protocols ? proxy.protocols[0] : 'http') + '://' + proxy.ipAddress + ':' + proxy.port;
-    proxy.tunnel = (proxy.tunnel ? true : false);
-
     return common.request(url, { proxy: proxy.url, tunnel: proxy.tunnel, json: (validation.type == 'json') })
         .then(function(resp) {
             if (validation.type == 'html') {
@@ -49,35 +103,54 @@ var proxyTester = function(url, validation, proxy) {
         });
 };
 
-var fetchProxy = function(url, validation, i) {
-    i = i || 0;
+var fetchWorkingProxy = function(url, validation, proxiesList) {
+    debug('fetching a working proxy from ' + proxiesList.length + ' proxies...');
 
+    return Promise.any(_.map(proxiesList, _.bind(proxyTester, null, url, validation)));
+};
+
+var fetchProxiesFromSource = function(source) {
+    var gettingProxies = ProxyLists.getProxiesFromSource(source.name, { protocols: ['http', 'https'] });
+    var proxiesList = [];
+
+    return new Promise(function(resolve, reject) {
+        gettingProxies.on('data', function(proxies) {
+            proxiesList = proxiesList.concat(proxies);
+        });
+
+        gettingProxies.on('error', function(error) {
+            // ignore
+        });
+
+        gettingProxies.once('end', function() {
+            resolve(proxiesList);
+        });
+    });
+};
+
+var fetchProxies = function() {
     var sources = _.filter(ProxyLists.listSources(), function(s) {
         return !s.requiredOptions.apiKey;
     });
 
-    if (!sources[i]) throw 'unable to fetch a working proxy';
-
-    debug('fetching proxy from [' + i + '] ' + sources[i].name + '...');
-
-    return fetchProxyListFromSource(sources[i])
-        .then(function(proxiesList) {
-            if (!proxiesList.length) throw 'proxy list is empty';
-
-            return _.map(proxiesList, function(proxy) {
-                return proxyTester(url, validation, proxy);
-            });
-        })
-        .any()
-        .catch(function(err) {
-            return fetchProxy(url, validation, ++i);
+    return Promise.map(sources, fetchProxiesFromSource)
+        .then(function(proxiesListBySource) {
+            return _.uniqBy(_.flatMapDepth(proxiesListBySource, function(proxiesList) {
+                return _.map(proxiesList, function(p) {
+                    p.url = (p.protocols ? p.protocols[0] : 'http') + '://' + p.ipAddress + ':' + p.port;
+                    p.tunnel = (p.tunnel ? true : false);
+                    return p;
+                });
+            }), 'url');
         });
 };
 
 PROXY.prototype.fetch = function(url, validation) {
-    debug('fetching new proxy...');
+    debug('fetching a new proxy...');
+    debug('fetching proxies from source...');
 
-    return fetchProxy(url, validation);
+    return fetchProxies()
+        .then(_.bind(fetchWorkingProxy, null, url, validation));
 };
 
 module.exports = new PROXY;

@@ -125,7 +125,7 @@ var getReleasesFromPages = function(page) {
 
     return _.bind(getReleasesFromPage, _this)(page)
         .then(function(done) {
-            return done || Promise.delay(1 * 1000).then(function() {
+            return done || Promise.delay(5 * 1000).then(function() {
                 return _.bind(getReleasesFromPages, _this)(++page);
             });
         });
