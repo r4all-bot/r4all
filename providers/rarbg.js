@@ -13,7 +13,7 @@ var common = require('../common.js');
 var proxy = require('./proxy.js');
 
 var RARBG = function() {
-    this.URL = URI('https://rarbg.to');
+    this.URL = URI('https://rarbg.is');
 
     // status
     this.isOn = true;
