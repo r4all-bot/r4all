@@ -23,6 +23,7 @@
     "mongodb": "^2.2.31",
     "morgan": "^1.9.0",
     "moviedb": "^0.2.10",
+    "node-horseman": "^3.3.0",
     "proxy-lists": "^1.14.1",
     "request": "^2.83.0",
     "scene-release-parser": "^1.0.2",

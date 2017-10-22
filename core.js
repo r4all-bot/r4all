@@ -78,7 +78,7 @@ var fetchReleases = function() {
                 settings.bootstrapDatabase = false;
             }
 
-            return _.values(rarbg.newReleases);
+            return _.sortBy(rarbg.newReleases, 'pubdate');
         });
 };
 
