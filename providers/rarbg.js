@@ -28,7 +28,7 @@ var getReleasesFromPage = function() {
         .injectJs('node_modules/moment/min/moment.min.js')
         .injectJs('node_modules/moment-timezone/builds/moment-timezone-with-data.min.js')
         .evaluate(function(lastRelease) {
-            var page = $('#pager_links').find('b').text();
+            var page = parseInt($('#pager_links').find('b').text());
             var result = {
                 successful: true,
                 releases: [],
@@ -167,7 +167,7 @@ var unknownPage = function() {
             var fs = require('fs');
 
             var now = new Date();
-            var fileName = 'RARBG_UnknownPage_' + now.toISOString().slice(0, 19).replace(/:/g, '') + '.htm';
+            var fileName = 'rarbg/unknownpage_' + now.toISOString().slice(0, 19).replace(/:/g, '') + '.html';
 
             fs.writeFileSync(fileName, body);
 
@@ -179,6 +179,7 @@ var pageLoadedHandler = function(page, attempt) {
     attempt = attempt || 0;
 
     if (attempt > 1) return _.bind(loadPage, this)(page);
+
     var _this = this;
 
     return horseman
@@ -193,6 +194,8 @@ var pageLoadedHandler = function(page, attempt) {
                 pageLoaded = 'verify';
             } else if ($('.content-rounded').length) {
                 pageLoaded = 'verifying';
+            } else if ($('body:contains("We have too many requests from your ip in the past 24h.")').length) {
+                pageLoaded = 'banned';
             } else {
                 pageLoaded = 'unknown';
             }
@@ -228,6 +231,13 @@ var pageLoadedHandler = function(page, attempt) {
 
                     return Promise.delay(5 * 1000).then(function() {
                         return _.bind(pageLoadedHandler, _this)(page, ++attempt);
+                    });
+                    break;
+                case 'banned':
+                    debug('banned...');
+
+                    return Promise.delay(5 * 60 * 1000).then(function() {
+                        return _.bind(loadPage, _this)(page);
                     });
                     break;
                 default:

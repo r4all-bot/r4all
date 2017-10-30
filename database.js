@@ -15,8 +15,8 @@ module.exports = {
         var db_name = (process.env.MONGODB_DATABASE || 'r4all');
         var db_host = (process.env.MONGODB_SERVICE_HOST || '127.0.0.1');
         var db_port = (process.env.MONGODB_SERVICE_PORT || '27017');
-        var db_user = (process.env.MONGODB_USER || 'userPHF');
-        var db_pass = (process.env.MONGODB_PASSWORD || 'T0Osxv3Mw0vpCAvd');
+        var db_user = (process.env.MONGODB_USER || 'userOXW');
+        var db_pass = (process.env.MONGODB_PASSWORD || 'hyuXv2CKgb7D5aLM');
 
         return MongoDB.MongoClient.connectAsync('mongodb://' + db_user + ':' + db_pass + '@' + db_host + ':' + db_port + '/' + db_name)
             .then(function(database) {

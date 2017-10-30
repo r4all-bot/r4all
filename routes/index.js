@@ -16,44 +16,45 @@ function getLayoutData(req, res, next) {
     var locals = req.app.locals;
     var db = locals.db;
 
-    db.getReleasesCategoryCount()
-        .then(function (total) {
-            locals.total720pMovieReleases = 0;
-            locals.total1080pMovieReleases = 0;
-            locals.totalShowReleases = 0;
-            locals.totalUnverifiedMovies = 0;
+    return next();
+    // db.getReleasesCategoryCount()
+    //     .then(function (total) {
+    //         locals.total720pMovieReleases = 0;
+    //         locals.total1080pMovieReleases = 0;
+    //         locals.totalShowReleases = 0;
+    //         locals.totalUnverifiedMovies = 0;
 
-            _.each(total, function (subTotal) {
-                if (subTotal._id.category == 's720p') {
-                    locals.totalShowReleases += subTotal.count;
-                } else if (subTotal._id.category == 'm720p') {
-                    if (subTotal._id.isVerified == 0) {
-                        locals.totalUnverifiedMovies += subTotal.count;
-                    }
+    //         _.each(total, function (subTotal) {
+    //             if (subTotal._id.category == 's720p') {
+    //                 locals.totalShowReleases += subTotal.count;
+    //             } else if (subTotal._id.category == 'm720p') {
+    //                 if (subTotal._id.isVerified == 0) {
+    //                     locals.totalUnverifiedMovies += subTotal.count;
+    //                 }
 
-                    locals.total720pMovieReleases += subTotal.count;
-                } else if (subTotal._id.category == 'm1080p') {
-                    if (subTotal._id.isVerified == 0) {
-                        locals.totalUnverifiedMovies += subTotal.count;
-                    }
+    //                 locals.total720pMovieReleases += subTotal.count;
+    //             } else if (subTotal._id.category == 'm1080p') {
+    //                 if (subTotal._id.isVerified == 0) {
+    //                     locals.totalUnverifiedMovies += subTotal.count;
+    //                 }
 
-                    locals.total1080pMovieReleases += subTotal.count;
-                }
-            });
+    //                 locals.total1080pMovieReleases += subTotal.count;
+    //             }
+    //         });
 
-            return db.getUnverifiedShowsCount();
-        })
-        .then(function (total) {
-            locals.totalUnverifiedShows = total;
-            return next();
-        });
+    //         return db.getUnverifiedShowsCount();
+    //     })
+    //     .then(function (total) {
+    //         locals.totalUnverifiedShows = total;
+    //         return next();
+    //     });
 }
 
-module.exports = function (app) {
+module.exports = function(app) {
     // **************************************************
     // login & logout
     // **************************************************
-    app.get('/login', function (req, res) {
+    app.get('/login', function(req, res) {
         if (!req.url.endsWith('/')) {
             req.url += '/';
             res.redirect(req.url);
@@ -70,11 +71,11 @@ module.exports = function (app) {
         }
     });
 
-    app.post('/login', function (req, res) {
+    app.post('/login', function(req, res) {
         var post = req.body;
 
-        if (post.inputUser === 'admin' && post.inputPassword === 'recer') {
-            req.session.user_id = 'el_admin_id';
+        if (post.inputUser === 'admin' && post.inputPassword === req.app.locals.settings.adminPassword) {
+            req.session.user_id = post.inputUser;
 
             var redirectTo = req.session.redirectTo ? req.session.redirectTo : '/';
             delete req.session.redirectTo;
@@ -89,7 +90,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/logout', function (req, res) {
+    app.get('/logout', function(req, res) {
         delete req.session.user_id;
         res.redirect('/');
     });
@@ -97,7 +98,7 @@ module.exports = function (app) {
     // **************************************************
     // status
     // **************************************************
-    app.get('(/|/status)', getLayoutData, function (req, res) {
+    app.get('(/|/status)', getLayoutData, function(req, res) {
         if (!req.url.endsWith('/')) {
             req.url += '/';
             res.redirect(req.url);
@@ -105,7 +106,7 @@ module.exports = function (app) {
             var db = req.app.locals.db;
 
             db.getMemoryUsage()
-                .then(function (memoryUsage) {
+                .then(function(memoryUsage) {
                     res.render('status', {
                         title: 'Status',
                         isAuthed: !!req.session.user_id,
@@ -115,7 +116,7 @@ module.exports = function (app) {
         }
     });
 
-    app.get('/memory', function (req, res) {
+    app.get('/memory', function(req, res) {
         var data = {
             x: req.app.locals.moment().tz('Europe/Lisbon').valueOf(),
             y: process.memoryUsage().rss / 1048576
@@ -152,19 +153,19 @@ module.exports = function (app) {
     // **************************************************
     // upsert release/show & delete release
     // **************************************************
-    app.put('/release', checkAuth, function (req, res) {
+    app.put('/release', checkAuth, function(req, res) {
         var db = req.app.locals.db;
         var imdb = req.app.locals.providers.imdb;
         var release = req.body;
 
         if (release._id && (!release.imdbId || release.imdbId.match(/^tt\d+$/))) {
             Promise.resolve(release.imdbId)
-                .then(function (imdbId) {
+                .then(function(imdbId) {
                     if (!imdbId) {
                         return;
                     } else {
                         return imdb.fetch(release.imdbId)
-                            .then(function (imdbInfo) {
+                            .then(function(imdbInfo) {
                                 if (!imdbInfo) throw 'Unable to fetch imdb info.';
 
                                 release.imdbId = imdbInfo._id; // because of imdb redirects
@@ -173,17 +174,17 @@ module.exports = function (app) {
                             });
                     }
                 })
-                .then(function () {
+                .then(function() {
                     if (typeof release.isVerified != 'undefined') {
                         release.isVerified = parseInt(release.isVerified) || 0;
                     }
 
                     return db.upsertRelease(release);
                 })
-                .then(function () {
+                .then(function() {
                     res.status(200).send();
                 })
-                .catch(function (err) {
+                .catch(function(err) {
                     res.status(400).send(err);
                 });
         } else {
@@ -191,16 +192,16 @@ module.exports = function (app) {
         }
     });
 
-    app.delete('/release', checkAuth, function (req, res) {
+    app.delete('/release', checkAuth, function(req, res) {
         var db = req.app.locals.db;
         var release = req.body;
 
         if (release._id) {
             Promise.resolve(db.removeRelease(release))
-                .then(function () {
+                .then(function() {
                     res.status(200).send();
                 })
-                .catch(function (err) {
+                .catch(function(err) {
                     res.status(400).send(err);
                 });
         } else {
@@ -208,29 +209,29 @@ module.exports = function (app) {
         }
     });
 
-    app.put('/show', checkAuth, function (req, res) {
+    app.put('/show', checkAuth, function(req, res) {
         var db = req.app.locals.db;
         var imdb = req.app.locals.providers.imdb;
         var show = req.body;
 
         if (show._id && show.folder && show.imdbId && show.imdbId.match(/^tt\d+$/) && (!show.addic7edId || show.addic7edId.match(/^\d+$/))) {
             imdb.fetch(show.imdbId)
-                .then(function (imdbInfo) {
+                .then(function(imdbInfo) {
                     if (!imdbInfo) throw 'Unable to fetch imdb info.';
 
                     show.imdbId = imdbInfo._id; // because of imdb redirects
 
                     return db.upsertIMDb(imdbInfo);
                 })
-                .then(function () {
+                .then(function() {
                     show.addic7edId = parseInt(show.addic7edId) || '';
                     show.isVerified = parseInt(show.isVerified) || 0;
                     return db.upsertShow(show);
                 })
-                .then(function () {
+                .then(function() {
                     res.status(200).send();
                 })
-                .catch(function (err) {
+                .catch(function(err) {
                     res.status(400).send(err);
                 });
         } else {
@@ -246,14 +247,14 @@ module.exports = function (app) {
     // **************************************************
     // subtitle download interface
     // **************************************************
-    app.get('/subtitle/*', function (req, res) {
+    app.get('/subtitle/*', function(req, res) {
         var common = req.app.locals.common;
         var addic7ed = req.app.locals.providers.addic7ed;
         var subtitle = common.rem(/^\/subtitle\/(.+?)(\/.+)$/i, req.path);
 
         if (subtitle) {
             addic7ed.download(subtitle[1])
-                .then(function (s) {
+                .then(function(s) {
                     res.attachment(subtitle[0] + '.srt');
                     res.send(s);
                 });
@@ -265,7 +266,7 @@ module.exports = function (app) {
     // **************************************************
     // catch 404 and forward to error handler
     // **************************************************
-    app.use(function (req, res) {
+    app.use(function(req, res) {
         res.status(400);
         res.render('error', {
             message: 'Stop being a smartass!',
