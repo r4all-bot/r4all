@@ -236,10 +236,7 @@ var pageLoadedHandler = function(page, attempt) {
                 case 'banned':
                     debug('banned...');
 
-                    return Promise.delay(5 * 60 * 1000).then(function() {
-                        return _.bind(loadPage, _this)(page);
-                    });
-                    break;
+                    throw ('banned');
                 default:
                     debug('unknown page loaded');
 
