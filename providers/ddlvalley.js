@@ -259,7 +259,7 @@ var fetchPost = function(release, category, attempt) {
             return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(html) {
-            return _.bind(fetchPostInfo, _this)(html, category, null, release.date,); // pass release.date to keep datetime instead of only date
+            return _.bind(fetchPostInfo, _this)(html, category, null, release.date); // pass release.date to keep datetime instead of only date
         })
         .catch(function(err) {
             if (attempt > 5) throw err;
