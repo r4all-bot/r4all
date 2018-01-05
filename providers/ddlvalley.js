@@ -46,7 +46,7 @@ var fetchFeedReleasesInfo = function(xml, category) {
 
     // loop through every item
     $('item').each(function() {
-        var postId = parseInt(common.rem(/\?p=(\d+)/i, $(this).children('guid').text()));
+        var postId = $(this).children('link').text();
         var postDate = common.unleak($(this).children('pubDate').text());
         var postTitle = common.unleak($(this).children('title').text());
 
@@ -93,7 +93,7 @@ var fetchFeedReleasesInfo = function(xml, category) {
             log.warn(category + ' feed scraping: no post id/datetime (' + postTitle + ')');
         }
     });
-
+done = true;
     return !forceSiteScraping && done;
 };
 
@@ -184,7 +184,7 @@ var fetchSiteReleasesInfo = function(html, category, page) {
     return done;
 };
 
-var fetchPostInfo = function(html, category, postTitle, pendingPostDate) {
+var fetchPostInfo = function(html, category, postTitle, pendingPostDate, url) {
     var $ = cheerio.load(html);
 
     // validate the page
@@ -196,7 +196,7 @@ var fetchPostInfo = function(html, category, postTitle, pendingPostDate) {
         }
     }
 
-    var postId = parseInt(common.rem(/post-(\d+)/i, $('.post').attr('id')));
+    var postId = url || $(this).prev('h2').find('a').attr('href');
     var postDate = common.unleak($('.post').find('.date').text());
     var postTitle = common.unleak(postTitle || $('.post').prev('h1').text() || common.rem(/^Download\s*(.+)\s*$/i, $('.post').find('.dl a').attr('title')) || common.rem(/\s*(.+)\s*\| DDLValley*$/i, $('title').text()));
 
@@ -243,7 +243,7 @@ var fetchPost = function(release, category, attempt) {
 
     attempt > 1 && debug('attempt: ' + attempt);
 
-    var url = this.POST_URL.replace(/\{postId\}/, release.postId);
+    var url = release.postId;
 
     var _this = this;
 
@@ -259,7 +259,7 @@ var fetchPost = function(release, category, attempt) {
             return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
         })
         .then(function(html) {
-            return _.bind(fetchPostInfo, _this)(html, category, null, release.date); // pass release.date to keep datetime instead of only date
+            return _.bind(fetchPostInfo, _this)(html, category, null, release.date,); // pass release.date to keep datetime instead of only date
         })
         .catch(function(err) {
             if (attempt > 5) throw err;
