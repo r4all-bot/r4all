@@ -28,7 +28,7 @@ var fetchInfo = function (html) {
     var $ = cheerio.load(html);
 
     // validate the page
-    if (!$('#tn15').length) throw 'site validation failed (fetchInfo)';
+    if (!$('#content-2-wide').length) throw 'site validation failed (fetchInfo)';
 
     info._id = common.rem(/imdb\.com\/title\/(tt\d+)/i, $('link[href$="combined"]').attr('href'));
     info.title = common.rem(/^\s*(.+?)\s*\(.*?\d{4}.*?\)$/, $('title').text());

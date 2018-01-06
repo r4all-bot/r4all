@@ -93,7 +93,7 @@ var fetchFeedReleasesInfo = function(xml, category) {
             log.warn(category + ' feed scraping: no post id/datetime (' + postTitle + ')');
         }
     });
-done = true;
+
     return !forceSiteScraping && done;
 };
 
@@ -155,7 +155,7 @@ var fetchSiteReleasesInfo = function(html, category, page) {
             return false;
         }
 
-        _.bind(fetchPostInfo, _this)(this, category, common.unleak($(this).prev('h2').text()));
+        _.bind(fetchPostInfo, _this)(this, category, common.unleak($(this).prev('h2').text()), null, $(this).prev('h2').find('a').attr('href'));
     });
 
     // check if reached last page
@@ -179,7 +179,7 @@ var fetchPostInfo = function(html, category, postTitle, pendingPostDate, url) {
         }
     }
 
-    var postId = url || $(this).prev('h2').find('a').attr('href');
+    var postId = url;
     var postDate = common.unleak($('.post').find('.date').text());
     var postTitle = common.unleak(postTitle || $('.post').prev('h1').text() || common.rem(/^Download\s*(.+)\s*$/i, $('.post').find('.dl a').attr('title')) || common.rem(/\s*(.+)\s*\| DDLValley*$/i, $('title').text()));
 
@@ -229,10 +229,10 @@ var fetchPost = function(release, category, attempt) {
     var url = release.postId;
 
     var _this = this;
-
+    
     return common.req(url)
         .then(function(html) {
-            return _.bind(fetchPostInfo, _this)(html, category, null, release.date); // pass release.date to keep datetime instead of only date
+            return _.bind(fetchPostInfo, _this)(html, category, null, release.date, release.postId); // pass release.date to keep datetime instead of only date
         });
 };
 
