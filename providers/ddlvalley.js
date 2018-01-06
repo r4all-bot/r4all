@@ -116,26 +116,9 @@ var fetchReleasesFromPage = function(category, page, attempt) {
 
     var _this = this;
 
-    return Promise.resolve((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'html', element: '.post' }))
-        .then(function(result) {
-            if (_this.proxy != result.proxy) {
-                _this.proxy = result.proxy;
-                debug('using new proxy: ' + _this.proxy);
-            }
-
-            debug(url);
-
-            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
-        })
+    return common.req(url)
         .then(function(html) {
             return _.bind(fetchSiteReleasesInfo, _this)(html, category, page);
-        })
-        .catch(function(err) {
-            if (attempt > 5) throw err;
-
-            _this.proxy = null;
-
-            return _.bind(fetchReleasesFromPage, _this)(category, page, ++attempt);
         });
 };
 
@@ -247,26 +230,9 @@ var fetchPost = function(release, category, attempt) {
 
     var _this = this;
 
-    return Promise.resolve((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'html', element: '#core' }))
-        .then(function(result) {
-            if (_this.proxy != result.proxy) {
-                _this.proxy = result.proxy;
-                debug('using new proxy: ' + _this.proxy);
-            }
-
-            debug(url);
-
-            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
-        })
+    return common.req(url)
         .then(function(html) {
             return _.bind(fetchPostInfo, _this)(html, category, null, release.date); // pass release.date to keep datetime instead of only date
-        })
-        .catch(function(err) {
-            if (attempt > 5) throw err;
-
-            _this.proxy = null;
-
-            return _.bind(fetchPost, _this)(release, category, ++attempt);
         });
 };
 
@@ -277,26 +243,9 @@ DDLValley.prototype.fetchFeed = function(url, category, attempt) {
 
     var _this = this;
 
-    return Promise.resolve((_this.proxy && { proxy: _this.proxy }) || proxy.fetch(url, { type: 'xml', element: 'item' }))
-        .then(function(result) {
-            if (_this.proxy != result.proxy) {
-                _this.proxy = result.proxy;
-                debug('using new proxy: ' + _this.proxy);
-            }
-
-            debug(url);
-
-            return (result.resp || common.req(url, null, { proxy: _this.proxy, tunnel: false }));
-        })
+    return common.req(url)
         .then(function(xml) {
             return _.bind(fetchFeedReleasesInfo, _this)(xml, category);
-        })
-        .catch(function(err) {
-            if (attempt >= 5) throw err;
-
-            _this.proxy = null;
-
-            return _.bind(_this.fetchFeed, _this)(url, category, ++attempt);
         });
 };
 
